@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>V3 车队平台 · 监控与回放</title>
+<style>
+  /* 风格与 test_console.html 一致：浅色底、白卡片、#185fa5 主色 */
+  :root {
+    --bg: #f3f5f8;
+    --card: #ffffff;
+    --border: #e2e6ec;
+    --text: #1c2733;
+    --muted: #7a8694;
+    --accent: #185fa5;
+    --accent-weak: #e8f1fa;
+    --ok: #1a7f4b;
+    --ok-bg: #e6f4ec;
+    --bad: #c0392b;
+    --bad-bg: #fbeeec;
+    --warn: #9a6700;
+    --warn-bg: #fff6e0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+    font-size: 14px;
+  }
+  header {
+    background: var(--card); border-bottom: 1px solid var(--border);
+    padding: 12px 20px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  }
+  header h1 { font-size: 17px; margin: 0; }
+  header .sub { color: var(--muted); font-size: 12px; }
+  .view-switch { display: flex; gap: 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .view-switch button {
+    padding: 7px 18px; border: none; background: var(--card); cursor: pointer;
+    font-size: 13px; color: var(--muted);
+  }
+  .view-switch button.active { background: var(--accent); color: #fff; }
+  .conn { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+  .conn input {
+    width: 210px; padding: 6px 10px; border: 1px solid var(--border);
+    border-radius: 6px; font-size: 13px;
+  }
+  .badge {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 12px; font-size: 12px;
+    background: var(--bad-bg); color: var(--bad);
+  }
+  .badge .dot { width: 9px; height: 9px; border-radius: 50%; background: currentColor; }
+  .badge.ok { background: var(--ok-bg); color: var(--ok); }
+  .badge.ok .dot { box-shadow: 0 0 6px rgba(26,127,75,.7); }
+
+  /* 兜底提示横幅（协议 7.2 降级时显示） */
+  #fallbackBanner {
+    display: none; background: var(--warn-bg); color: var(--warn);
+    border-bottom: 1px solid #f0e2b6; padding: 8px 20px; font-size: 13px;
+  }
+  #fallbackBanner.show { display: block; }
+
+  main {
+    display: grid; grid-template-columns: 320px 1fr; gap: 14px;
+    padding: 14px 20px; max-width: 1280px; margin: 0 auto;
+    align-items: start;
+  }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .card h2 { font-size: 14px; margin: 0 0 10px; }
+  .card h2 .hint { font-weight: normal; color: var(--muted); font-size: 12px; margin-left: 6px; }
+  .col { display: flex; flex-direction: column; gap: 14px; }
+
+  /* 车辆卡片（实时监控） */
+  .car-list { display: flex; flex-direction: column; gap: 8px; }
+  .car {
+    border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px;
+    cursor: pointer; display: flex; align-items: center; gap: 10px; background: #fff;
+  }
+  .car:hover { border-color: var(--accent); }
+  .car.focused { border-color: var(--accent); background: var(--accent-weak); }
+  .swatch { width: 11px; height: 11px; border-radius: 3px; flex: none; }
+  .car .info { flex: 1; min-width: 0; }
+  .car .name { font-weight: bold; }
+  .car .meta { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .car input[type=checkbox] { flex: none; }
+  .empty-tip { color: var(--muted); font-size: 12.5px; }
+
+  /* 画布卡片 */
+  .stage { padding: 12px; }
+  canvas { width: 100%; height: auto; display: block; border-radius: 8px; }
+  .stage .tip { color: var(--muted); font-size: 12px; margin-top: 8px; }
+
+  /* 回放控制 */
+  .form-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+  .form-row label { color: var(--muted); font-size: 12px; flex: none; }
+  .form-row select, .form-row input[type=datetime-local] {
+    flex: 1; min-width: 150px; padding: 6px 8px; border: 1px solid var(--border);
+    border-radius: 6px; font-size: 12.5px; color: var(--text);
+  }
+  button {
+    padding: 6px 14px; border: 1px solid var(--border); border-radius: 6px;
+    background: var(--card); color: var(--text); cursor: pointer; font-size: 13px;
+  }
+  button:hover { border-color: var(--accent); color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.primary:hover { opacity: .88; color: #fff; }
+  .speed-group { display: flex; gap: 4px; }
+  .speed-group button { padding: 5px 10px; font-size: 12px; }
+  .speed-group button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  input[type=range] { flex: 1; min-width: 120px; }
+  .rep-summary { font-size: 12.5px; color: var(--muted); line-height: 1.9; margin-top: 10px; }
+  .rep-summary b { color: var(--text); font-variant-numeric: tabular-nums; }
+
+  footer { text-align: center; color: var(--muted); font-size: 12px; padding: 6px 0 18px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>V3 巡检车队平台</h1>
+    <div class="sub">协议 7.1 WS 实时广播 + 7.2 HTTP 兜底 + 7.3 轨迹回放 · 只看不控</div>
+  </div>
+  <div class="view-switch">
+    <button id="btnViewLive" class="active">实时监控</button>
+    <button id="btnViewReplay">轨迹回放</button>
+  </div>
+  <div class="conn">
+    <input id="httpBase" value="" spellcheck="false" title="业务后端 HTTP 地址（兜底轮询与轨迹查询用）">
+    <span class="badge" id="connBadge"><span class="dot"></span><span id="connText">连接中…</span></span>
+  </div>
+</header>
+<div id="fallbackBanner">⚠ WebSocket 不可用，已自动降级为 HTTP 兜底模式（每 2 秒轮询 /fleet/status），WS 恢复后将自动切回。</div>
+
+<main>
+  <!-- ============ 左列：控制面板 ============ -->
+  <div class="col">
+    <!-- 实时监控：车辆面板 -->
+    <div class="card" id="panelLive">
+      <h2>车队车辆 <span class="hint">勾选显示 · 单击卡片聚焦</span></h2>
+      <div class="car-list" id="carList"><div class="empty-tip">等待 WS / 兜底数据…</div></div>
+    </div>
+
+    <!-- 轨迹回放：控制面板 -->
+    <div class="card" id="panelReplay" style="display:none">
+      <h2>回放设置 <span class="hint">GET /track（协议 7.3）</span></h2>
+      <div class="form-row">
+        <label>车辆</label>
+        <select id="repCar"></select>
+      </div>
+      <div class="form-row">
+        <label>从</label>
+        <input type="datetime-local" id="repFrom" title="留空 = 默认最近 1 小时">
+      </div>
+      <div class="form-row">
+        <label>到</label>
+        <input type="datetime-local" id="repTo" title="留空 = 默认最近 1 小时">
+      </div>
+      <div class="form-row">
+        <button class="primary" id="btnLoadTrack" style="flex:1">加载轨迹</button>
+      </div>
+      <h2 style="margin-top:14px">播放控制</h2>
+      <div class="form-row">
+        <button id="btnPlay" disabled>播放</button>
+        <div class="speed-group">
+          <button data-speed="1" class="active">×1</button>
+          <button data-speed="4">×4</button>
+          <button data-speed="16">×16</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <input type="range" id="repSeek" min="0" max="1000" value="0" disabled title="拖动调整进度">
+      </div>
+      <div class="rep-summary" id="repSummary">尚未加载轨迹。时间窗留空默认查最近 1 小时。</div>
+    </div>
+  </div>
+
+  <!-- ============ 右列：画布 ============ -->
+  <div class="col">
+    <div class="card stage">
+      <canvas id="field" width="800" height="600"></canvas>
+      <div class="tip" id="stageTip">俯视图：0,0 在左上角，坐标单位为米；每车按 devices.json 登记的颜色分轨显示。</div>
+    </div>
+  </div>
+</main>
+
+<footer>网页端为「只看不控」观察端（协议 L4 定位）· 实时数据 ws://&lt;host&gt;:8889/ws · 历史数据 GET /track</footer>
+
+<script>
+"use strict";
+/* ======================================================================
+ * V3 车队平台 · 监控与回放（纯静态单文件，零依赖）
+ * - 实时监控：WS 主通道（协议 7.1，每 1s 一帧 fleet_state），
+ *   断线指数退避重连（复用 V1 car_view 思路），连续失败 3 次降级
+ *   HTTP 轮询兜底（协议 7.2 /fleet/status，每 2s）；
+ * - 轨迹回放：选车 + 时间窗 → GET /track（协议 7.3）动画回放。
+ * 后端已放行 CORS，本页 file:// 双击打开即可用。
+ * ==================================================================== */
+
+const $ = (id) => document.getElementById(id);
+
+/* ------------------------------------------------ 全局状态 */
+const FIELD_W = 800, FIELD_H = 600;
+const TRAIL_MAX = 80;          // 每车轨迹环形缓冲上限（题目约定 80 点）
+const FALLBACK_AFTER = 3;      // WS 连续失败 N 次后降级 HTTP 轮询
+const FALLBACK_INTERVAL = 2000;
+const BACKOFF_BASE = 1000, BACKOFF_MAX = 30000;
+
+const state = {
+  cars: {},        // device_id -> 最新一帧车辆数据（fleet_state 单车对象）
+  order: [],       // 出现顺序（保持面板稳定，不随帧序抖动）
+  shown: {},       // device_id -> 勾选状态（默认全显）
+  focused: null,   // 聚焦的 device_id（再点取消）
+  trails: {},      // device_id -> [{x,y}] 内存环形缓冲（≤80 点）
+  dispPos: {},     // device_id -> {x,y} 帧间平滑的显示坐标
+  cards: {},       // device_id -> 已构建的卡片 DOM（只更新文本，不重建）
+};
+
+let view = "live";               // "live" | "replay"
+let ws = null, retryTimer = null, pingTimer = null;
+let backoff = BACKOFF_BASE;      // 指数退避当前值，连上后复位
+let wsFailCount = 0;             // 连续失败计数（触发兜底）
+let fallbackTimer = null;        // 兜底轮询句柄
+let usingFallback = false;
+
+/* ------------------------------------------------ 通用工具 */
+function httpBaseUrl() {
+  // file:// 打开时 location.hostname 为空，兜底 127.0.0.1
+  return ($("httpBase").value.trim() ||
+          ("http://" + (location.hostname || "127.0.0.1") + ":8000")).replace(/\/+$/, "");
+}
+function wsUrl() {
+  // WS 与 HTTP 不同端口（8889 vs 8000），原因见 ws_server.py 头注释
+  return "ws://" + (location.hostname || "localhost") + ":8889/ws";
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function pad2(n) { return String(n).padStart(2, "0"); }
+function fmtLocal(d) {  // Date -> "YYYY-MM-DD HH:MM:SS"（/track 接受的本地时间格式）
+  return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()) +
+         " " + pad2(d.getHours()) + ":" + pad2(d.getMinutes()) + ":" + pad2(d.getSeconds());
+}
+function fmtLocalInput(d) { // Date -> datetime-local 控件值 "YYYY-MM-DDTHH:MM"
+  return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()) +
+         "T" + pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+}
+
+/* ------------------------------------------------ 数据落地（WS 与兜底共用） */
+// cars 数组两种来源同构：7.1 fleet_state.cars = 7.2 /fleet/status 的 cars
+function applyCars(cars) {
+  for (const c of cars) {
+    const id = c.device_id;
+    if (!(id in state.cars)) {          // 新车入册：默认显示、默认全开
+      state.order.push(id);
+      state.shown[id] = true;
+    }
+    state.cars[id] = c;
+    // 轨迹：有坐标才记，坐标与上一点相同（空闲重复帧）不重复记
+    if (c.x !== null && c.y !== null) {
+      let tr = state.trails[id];
+      if (!tr) tr = state.trails[id] = [];
+      const last = tr[tr.length - 1];
+      if (!last || last.x !== c.x || last.y !== c.y) {
+        tr.push({ x: c.x, y: c.y });
+        if (tr.length > TRAIL_MAX) tr.shift();   // 环形缓冲：满则丢最旧
+      }
+    }
+  }
+  renderCarPanel();
+  refreshReplayCarOptions();
+}
+
+/* ------------------------------------------------ 车辆面板 */
+function renderCarPanel() {
+  const box = $("carList");
+  if (!state.order.length) {
+    box.innerHTML = '<div class="empty-tip">等待 WS / 兜底数据…</div>';
+    return;
+  }
+  box.innerHTML = "";
+  for (const id of state.order) {
+    const c = state.cars[id];
+    const color = c.color || "#999";
+    const div = document.createElement("div");
+    div.className = "car" + (state.focused === id ? " focused" : "");
+    const fmt = (v) => (v === null || v === undefined ? "—" : v);
+    div.innerHTML =
+      '<span class="swatch" style="background:' + escapeHtml(color) + '"></span>' +
+      '<span class="info">' +
+        '<div class="name">' + escapeHtml(c.name || id) +
+          ' <span style="font-weight:normal;color:var(--muted);font-size:11px">' +
+          (c.online ? "在线" : "离线") + '</span></div>' +
+        '<div class="meta">电量 ' + fmt(c.battery) + '%　x=' + fmt(c.x) + ' y=' + fmt(c.y) +
+          '　v=' + fmt(c.speed) + '</div>' +
+      '</span>' +
+      '<input type="checkbox" ' + (state.shown[id] ? "checked" : "") + ' title="画布上显示这辆车">';
+    // 勾选框控制显示（阻止冒泡，避免触发卡片的聚焦）
+    div.querySelector("input").addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      state.shown[id] = ev.target.checked;
+    });
+    // 单击卡片聚焦：只画这辆车的轨迹且加粗；再点取消
+    div.addEventListener("click", () => {
+      state.focused = (state.focused === id) ? null : id;
+      renderCarPanel();
+    });
+    box.appendChild(div);
+  }
+}
+
+/* ------------------------------------------------ WS 主通道（协议 7.1） */
+function setConn(ok, text) {
+  $("connBadge").className = "badge" + (ok ? " ok" : "");
+  $("connText").textContent = text;
+}
+
+function connect() {
+  setConn(false, "连接中…");
+  try { ws = new WebSocket(wsUrl()); } catch (e) { onWsDown(); return; }
+
+  ws.onopen = function () {
+    backoff = BACKOFF_BASE;      // 连上即清退避计数（题目要求）
+    wsFailCount = 0;
+    stopFallback();              // WS 恢复 → 自动切回（退出兜底模式）
+    setConn(true, "WS 已连接");
+    // 协议 7.1 心跳：每 30 秒一拍
+    if (pingTimer) clearInterval(pingTimer);
+    pingTimer = setInterval(() => {
+      if (ws && ws.readyState === 1) ws.send('{"type":"ping"}');
+    }, 30000);
+  };
+
+  ws.onmessage = function (ev) {
+    let frame;
+    try { frame = JSON.parse(ev.data); } catch (e) { return; }
+    if (frame.type === "fleet_state") applyCars(frame.cars || []);
+    // pong 无需处理（收发本身已证明链路活着）
+  };
+
+  ws.onclose = function () { onWsDown(); };
+  ws.onerror = function () { try { ws.close(); } catch (e) {} };
+}
+
+function onWsDown() {
+  if (pingTimer) { clearInterval(pingTimer); pingTimer = null; }
+  wsFailCount++;
+  setConn(false, "已断开，重连中…");
+  if (wsFailCount >= FALLBACK_AFTER) startFallback();   // 连续失败 → 降级兜底
+  scheduleReconnect();
+}
+
+// 指数退避重连（V1 car_view 的 scheduleReconnect 思路）：1s→2s→4s→…→30s 封顶
+function scheduleReconnect() {
+  if (retryTimer) return;
+  retryTimer = setTimeout(function () {
+    retryTimer = null;
+    connect();
+  }, backoff);
+  backoff = Math.min(backoff * 2, BACKOFF_MAX);
+}
+
+/* ------------------------------------------------ HTTP 兜底（协议 7.2） */
+function startFallback() {
+  if (fallbackTimer) return;
+  usingFallback = true;
+  $("fallbackBanner").className = "show";
+  setConn(false, "HTTP 兜底模式");
+  const poll = async () => {
+    try {
+      const resp = await fetch(httpBaseUrl() + "/fleet/status");
+      const data = await resp.json();
+      if (data && data.ok) applyCars(data.cars || []);
+    } catch (e) { /* 后端不在：下一轮再试，不打断轮询 */ }
+  };
+  poll();
+  fallbackTimer = setInterval(poll, FALLBACK_INTERVAL);
+}
+function stopFallback() {
+  if (fallbackTimer) { clearInterval(fallbackTimer); fallbackTimer = null; }
+  usingFallback = false;
+  $("fallbackBanner").className = "";
+}
+
+/* ------------------------------------------------ 画布渲染（两视图共用） */
+const canvas = $("field");
+const ctx = canvas.getContext("2d");
+
+function drawGrid() {   // 画法沿用 V1 car_view
+  ctx.fillStyle = "#f3f7fb";
+  ctx.fillRect(0, 0, FIELD_W, FIELD_H);
+  ctx.strokeStyle = "#dfe7f0";
+  ctx.lineWidth = 1;
+  for (let gx = 0; gx <= FIELD_W; gx += 50) {
+    ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, FIELD_H); ctx.stroke();
+  }
+  for (let gy = 0; gy <= FIELD_H; gy += 50) {
+    ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(FIELD_W, gy); ctx.stroke();
+  }
+  ctx.strokeStyle = "#c9d5e2";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(1, 1, FIELD_W - 2, FIELD_H - 2);
+  ctx.fillStyle = "#b9c5d3";
+  ctx.font = "12px sans-serif";
+  ctx.fillText("N ↑  (0,0) 左上角 · 场地 800 × 600", 10, 18);
+}
+
+// heading 约定与 V1/V2 一致：0°=朝上（-Y），顺时针增大；canvas rotate 正角即顺时针
+function drawCarMarker(x, y, heading, color, size, label) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(heading * Math.PI / 180);
+  ctx.beginPath();
+  ctx.moveTo(0, -size);            // 车头箭尖指向本地 -Y = 运动方向
+  ctx.lineTo(-size * 0.7, size * 0.75);
+  ctx.lineTo(0, size * 0.4);
+  ctx.lineTo(size * 0.7, size * 0.75);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,.9)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.restore();
+  if (label) {
+    ctx.fillStyle = color;
+    ctx.font = "bold 12px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(label, x, y - size - 6);
+    ctx.textAlign = "start";
+  }
+}
+
+function drawTrailLine(points, color, width) {
+  if (points.length < 2) return;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+  ctx.stroke();
+}
+
+// 帧间平滑：显示坐标每帧向目标坐标逼近 25%（线性缓动）。
+// 首帧/瞬移（两帧差距 > 150px，如后端重启坐标跳变）直接贴合不动画。
+function smoothPos(id, tx, ty) {
+  let p = state.dispPos[id];
+  if (!p) { p = state.dispPos[id] = { x: tx, y: ty }; return p; }
+  if (Math.abs(tx - p.x) > 150 || Math.abs(ty - p.y) > 150) { p.x = tx; p.y = ty; return p; }
+  p.x += (tx - p.x) * 0.25;
+  p.y += (ty - p.y) * 0.25;
+  return p;
+}
+
+function drawIdleHint(text) {
+  ctx.fillStyle = "#8b99a9";
+  ctx.font = "16px sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(text, FIELD_W / 2, FIELD_H / 2);
+  ctx.textAlign = "start";
+}
+
+function renderLive() {
+  const anyCar = state.order.some((id) => state.shown[id] && state.cars[id] &&
+                                       state.cars[id].x !== null && state.cars[id].y !== null);
+  if (!anyCar) { drawIdleHint("等待车辆数据…（确认 app.py 与设备模拟器已启动）"); return; }
+  for (const id of state.order) {
+    if (!state.shown[id]) continue;                    // 勾选关闭：整辆不画
+    const c = state.cars[id];
+    if (c.x === null || c.y === null) continue;        // 离线车无坐标：不画
+    // 聚焦模式：只画聚焦那辆（其余车辆整体跳过）
+    if (state.focused && state.focused !== id) continue;
+    const p = smoothPos(id, c.x, c.y);
+    const focused = state.focused === id;
+    // 轨迹（同色；聚焦时加粗到 4px）
+    drawTrailLine(state.trails[id] || [], c.color || "#999", focused ? 4 : 2);
+    drawCarMarker(p.x, p.y, c.heading || 0, c.color || "#999", focused ? 17 : 14, c.name);
+  }
+}
+
+/* ------------------------------------------------ 轨迹回放（协议 7.3） */
+const rep = {
+  points: [],       // [{x,y,t,heading,speed}]，/track 原样点列（时间升序）
+  color: "#185fa5",
+  pos: 0,           // 播放头（浮点点索引，0 ~ points.length-1）
+  playing: false,
+  speed: 1,         // ×1 / ×4 / ×16
+};
+
+function refreshReplayCarOptions() {
+  const sel = $("repCar");
+  const cur = sel.value;
+  sel.innerHTML = "";
+  for (const id of state.order) {
+    const c = state.cars[id];
+    const opt = document.createElement("option");
+    opt.value = id;
+    opt.textContent = (c && c.name ? c.name : id);
+    sel.appendChild(opt);
+  }
+  if (cur && state.order.includes(cur)) sel.value = cur;   // 保留用户已选
+}
+
+async function loadTrack() {
+  const id = $("repCar").value;
+  const box = $("repSummary");
+  if (!id) { box.textContent = "还没有车辆数据（等实时通道送来车辆列表后再试）"; return; }
+
+  // 时间窗：留空默认最近 1 小时（前端算好再发，并把值回填输入框让用户看到）
+  let from = $("repFrom").value.trim();   // datetime-local 值形如 2026-11-07T20:30
+  let to = $("repTo").value.trim();
+  if (!from || !to) {
+    const nowD = new Date();
+    const fromD = new Date(nowD.getTime() - 3600 * 1000);
+    from = from || fmtLocalInput(fromD);
+    to = to || fmtLocalInput(nowD);
+    $("repFrom").value = from;
+    $("repTo").value = to;
+  }
+  const params = new URLSearchParams({ device_id: id, from: from, to: to });
+
+  box.textContent = "加载中…";
+  try {
+    const resp = await fetch(httpBaseUrl() + "/track?" + params.toString());
+    const data = await resp.json();
+    if (!data.ok) { box.textContent = "加载失败：" + (data.error || ("HTTP " + resp.status)); return; }
+    rep.points = data.points || [];
+    rep.pos = 0;
+    rep.playing = false;
+    $("btnPlay").textContent = "播放";
+    $("btnPlay").disabled = rep.points.length < 2;
+    $("repSeek").disabled = rep.points.length < 2;
+    $("repSeek").value = 0;
+    if (!rep.points.length) {
+      box.textContent = "共 0 点（该时间窗内没有轨迹，先让车跑一跑，或把时间窗调大）";
+      return;
+    }
+    const f = rep.points[0], l = rep.points[rep.points.length - 1];
+    box.innerHTML = "共 <b>" + rep.points.length + "</b> 点 · " +
+      escapeHtml(f.t) + " → " + escapeHtml(l.t) +
+      "<br>当前点：<b id='repCur'>—</b>";
+    // 回放车辆颜色：优先用实时通道里该车的登记色
+    const cc = state.cars[id];
+    rep.color = (cc && cc.color) || "#185fa5";
+  } catch (e) {
+    box.textContent = "加载失败：" + e + "（检查后端地址）";
+  }
+}
+
+function repCurPoint() {
+  const n = rep.points.length;
+  if (!n) return null;
+  const i = Math.min(Math.floor(rep.pos), n - 1);
+  const j = Math.min(i + 1, n - 1);
+  const f = rep.pos - i;   // 段内插值系数
+  const a = rep.points[i], b = rep.points[j];
+  return {
+    x: a.x + (b.x - a.x) * f,
+    y: a.y + (b.y - a.y) * f,
+    heading: a.heading || 0,
+    t: a.t,          // 时间戳取当前段起点（点间约 5s，标注到点即可）
+  };
+}
+
+function renderReplay(dt) {
+  if (!rep.points.length) {
+    drawIdleHint("尚未加载轨迹：在左侧选车、设时间窗后点「加载轨迹」");
+    return;
+  }
+  // 播放推进：基础节奏 2 点/秒（采样约 5s/点，×1 ≈ 10 倍速回看，
+  // 再叠加 ×1/×4/×16 三档）；到尾点自动停
+  if (rep.playing) {
+    rep.pos += dt * 2 * rep.speed;
+    if (rep.pos >= rep.points.length - 1) {
+      rep.pos = rep.points.length - 1;
+      rep.playing = false;
+      $("btnPlay").textContent = "播放";
+    }
+    $("repSeek").value = Math.round(rep.pos / (rep.points.length - 1) * 1000);
+  }
+  // 灰色完整轨迹打底 → 车辆色覆盖已走部分 → 车辆标记
+  drawTrailLine(rep.points, "#c3ccd6", 3);
+  const head = Math.floor(rep.pos);
+  drawTrailLine(rep.points.slice(0, head + 1), rep.color, 3);
+  const cur = repCurPoint();
+  drawCarMarker(cur.x, cur.y, cur.heading, rep.color, 16, null);
+  // 当前点时间戳（画布左上角信息条）
+  ctx.fillStyle = "#1c2733";
+  ctx.font = "bold 13px sans-serif";
+  ctx.fillText("▶ " + cur.t + "　(" + cur.x.toFixed(1) + ", " + cur.y.toFixed(1) + ")", 12, 36);
+  const el = document.getElementById("repCur");
+  if (el) el.textContent = cur.t + " @ (" + cur.x.toFixed(1) + ", " + cur.y.toFixed(1) + ")";
+}
+
+/* ------------------------------------------------ 主循环（rAF 驱动两视图） */
+let lastTs = 0;
+function loop(ts) {
+  const dt = lastTs ? Math.min((ts - lastTs) / 1000, 0.1) : 0;  // 秒；上限防切后台大跳
+  lastTs = ts;
+  drawGrid();
+  if (view === "live") renderLive(); else renderReplay(dt);
+  requestAnimationFrame(loop);
+}
+
+/* ------------------------------------------------ 视图切换与事件绑定 */
+function switchView(v) {
+  view = v;
+  $("btnViewLive").className = (v === "live") ? "active" : "";
+  $("btnViewReplay").className = (v === "replay") ? "active" : "";
+  $("panelLive").style.display = (v === "live") ? "" : "none";
+  $("panelReplay").style.display = (v === "replay") ? "" : "none";
+  $("stageTip").textContent = (v === "live")
+    ? "俯视图：0,0 在左上角，坐标单位为米；每车按 devices.json 登记的颜色分轨显示。"
+    : "回放：灰线为完整轨迹，彩色为已走部分；拖进度条可跳转。";
+  if (v === "replay") refreshReplayCarOptions();
+}
+
+$("btnViewLive").addEventListener("click", () => switchView("live"));
+$("btnViewReplay").addEventListener("click", () => switchView("replay"));
+$("btnLoadTrack").addEventListener("click", loadTrack);
+$("btnPlay").addEventListener("click", () => {
+  if (rep.points.length < 2) return;
+  // 播到尾点后再点播放 = 从头再来
+  if (!rep.playing && rep.pos >= rep.points.length - 1) rep.pos = 0;
+  rep.playing = !rep.playing;
+  $("btnPlay").textContent = rep.playing ? "暂停" : "播放";
+});
+document.querySelectorAll(".speed-group button").forEach((b) =>
+  b.addEventListener("click", () => {
+    rep.speed = Number(b.dataset.speed);
+    document.querySelectorAll(".speed-group button").forEach((x) =>
+      x.className = (x === b) ? "active" : "");
+  }));
+$("repSeek").addEventListener("input", (ev) => {
+  if (rep.points.length < 2) return;
+  rep.pos = (Number(ev.target.value) / 1000) * (rep.points.length - 1);
+});
+
+/* ------------------------------------------------ 启动 */
+$("httpBase").value = "http://" + (location.hostname || "127.0.0.1") + ":8000";
+connect();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>V3 车队平台 · 管理后台</title>
+<style>
+  /* 风格基准对齐 test_console.html（浅色白卡片，#185fa5 主色） */
+  :root {
+    --bg: #f3f5f8;
+    --card: #ffffff;
+    --border: #e2e6ec;
+    --text: #1c2733;
+    --muted: #7a8694;
+    --accent: #185fa5;
+    --accent-weak: #e8f1fa;
+    --ok: #1a7f4b;
+    --ok-bg: #e6f4ec;
+    --bad: #c0392b;
+    --bad-bg: #fbeeec;
+    --warn: #9a6700;
+    --warn-bg: #fff6e0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+    font-size: 14px;
+  }
+  header {
+    background: var(--card); border-bottom: 1px solid var(--border);
+    padding: 12px 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  }
+  header h1 { font-size: 17px; margin: 0; }
+  header .sub { color: var(--muted); font-size: 12px; }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tabs button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .tabs button.active:hover { color: #fff; opacity: .9; }
+  .right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .right input {
+    width: 200px; padding: 6px 10px; border: 1px solid var(--border);
+    border-radius: 6px; font-size: 13px;
+  }
+  button {
+    padding: 6px 14px; border: 1px solid var(--border); border-radius: 6px;
+    background: var(--card); color: var(--text); cursor: pointer; font-size: 13px;
+  }
+  button:hover { border-color: var(--accent); color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.primary:hover { opacity: .88; color: #fff; }
+  button.danger { color: var(--bad); border-color: #eccfcb; }
+  button.danger:hover { border-color: var(--bad); }
+  .badge {
+    padding: 4px 10px; border-radius: 12px; font-size: 12px; background: var(--bad-bg);
+    color: var(--bad);
+  }
+  .badge.ok { background: var(--ok-bg); color: var(--ok); }
+
+  main { padding: 14px 20px; max-width: 1280px; margin: 0 auto; }
+  .view { display: none; }
+  .view.active { display: block; }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px; margin-bottom: 14px;
+  }
+  .card h2 { font-size: 14px; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
+  .card h2 .hint { font-weight: normal; color: var(--muted); font-size: 12px; }
+  .card h2 .spacer { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+
+  /* 登录卡片 */
+  #loginWrap {
+    min-height: 60vh; display: flex; align-items: center; justify-content: center;
+  }
+  #loginCard { width: 340px; }
+  #loginCard .field { margin-bottom: 12px; }
+  #loginCard label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  #loginCard input {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--border);
+    border-radius: 6px; font-size: 13px;
+  }
+  #loginCard button { width: 100%; padding: 9px; }
+  .form-err { color: var(--bad); font-size: 12px; min-height: 16px; margin-bottom: 8px; }
+
+  /* 总览统计卡 */
+  .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 14px; }
+  .stat {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 16px; text-align: center;
+  }
+  .stat .num { font-size: 28px; font-weight: bold; font-variant-numeric: tabular-nums; }
+  .stat .lbl { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .stat.green .num { color: var(--ok); }
+  .stat.red .num { color: var(--bad); }
+  .stat.warn .num { color: var(--warn); }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+  @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+  /* 排行条形（纯 div 宽度，不用图表库） */
+  .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 12.5px; }
+  .bar-row .name { width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar-row .track { flex: 1; background: var(--bg); border-radius: 6px; height: 18px; overflow: hidden; }
+  .bar-row .fill { height: 100%; background: var(--accent); border-radius: 6px; min-width: 2px; }
+  .bar-row.battery .fill { background: var(--ok); }
+  .bar-row .val { width: 70px; text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th, td { padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+  th { color: var(--muted); font-weight: normal; }
+  td.num { font-variant-numeric: tabular-nums; }
+  .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+  .pill { padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+  .pill.on   { background: var(--ok-bg);   color: var(--ok); }
+  .pill.off  { background: var(--bad-bg);  color: var(--bad); }
+  .pill.frozen { background: var(--warn-bg); color: var(--warn); }
+  .pill.ok   { background: var(--ok-bg);   color: var(--ok); }
+  .pill.bad  { background: var(--bad-bg);  color: var(--bad); }
+  .pill.warn { background: var(--warn-bg); color: var(--warn); }
+  td.actions button { padding: 3px 10px; font-size: 12px; margin-right: 4px; }
+
+  /* 注册表单 */
+  .form-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+  .form-row .field { display: flex; flex-direction: column; gap: 4px; }
+  .form-row label { font-size: 12px; color: var(--muted); }
+  .form-row input {
+    padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px;
+    font-size: 13px; width: 180px;
+  }
+  .form-row input[type=color] { padding: 2px; width: 60px; height: 34px; }
+
+  /* 密钥一次性展示卡 */
+  #secretCard { display: none; border: 2px solid var(--warn); background: var(--warn-bg); }
+  #secretCard .secret {
+    font-family: Consolas, monospace; font-size: 16px; font-weight: bold;
+    padding: 8px 10px; background: #fff; border: 1px dashed var(--warn);
+    border-radius: 6px; user-select: all; margin: 8px 0;
+  }
+  #monitorFrame { width: 100%; height: calc(100vh - 220px); min-height: 480px;
+    border: 1px solid var(--border); border-radius: 10px; background: #fff; }
+  .muted { color: var(--muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>V3 车队平台 · 管理后台</h1>
+    <div class="sub">对应《V3-接口协议设计》v1.2 第 13 节 /admin/* · 步骤⑤</div>
+  </div>
+  <div class="tabs" id="tabs">
+    <button data-view="overview" class="active">总览</button>
+    <button data-view="devices">设备管理</button>
+    <button data-view="commands">命令历史</button>
+    <button data-view="monitor">实时监控</button>
+  </div>
+  <div class="right">
+    <input id="baseUrl" value="http://127.0.0.1:8000" spellcheck="false" title="业务后端地址">
+    <span class="badge" id="loginBadge">未登录</span>
+    <button id="btnLogout" style="display:none">退出登录</button>
+  </div>
+</header>
+
+<!-- ================= 登录（未登录时只显示这个） ================= -->
+<div id="loginWrap">
+  <div class="card" id="loginCard">
+    <h2>管理员登录</h2>
+    <div class="form-err" id="loginErr"></div>
+    <div class="field">
+      <label>用户名（默认 admin，见 server/config.json）</label>
+      <input id="loginUser" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>密码（默认 admin123，仅教学环境）</label>
+      <input id="loginPass" type="password" autocomplete="current-password">
+    </div>
+    <button class="primary" id="btnLogin">登 录</button>
+  </div>
+</div>
+
+<!-- ================= 已登录的主界面 ================= -->
+<main id="mainWrap" style="display:none">
+
+  <!-- ===== 总览 ===== -->
+  <section class="view active" id="view-overview">
+    <div class="stat-row">
+      <div class="stat green"><div class="num" id="stOnline">—</div><div class="lbl">在线</div></div>
+      <div class="stat red"><div class="num" id="stOffline">—</div><div class="lbl">离线</div></div>
+      <div class="stat warn"><div class="num" id="stFrozen">—</div><div class="lbl">冻结</div></div>
+      <div class="stat"><div class="num" id="stToday">—</div><div class="lbl">今日消息量（近似）</div></div>
+    </div>
+    <div class="two-col">
+      <div class="card">
+        <h2>电量排行 <span class="hint">GET /admin/overview · 降序，从未上报排最后</span></h2>
+        <div id="batteryRank"><div class="muted">暂无数据</div></div>
+      </div>
+      <div class="card">
+        <h2>最近 7 天消息量 <span class="hint">track_points 行数 ≈ 上报帧数 ≈ 额度消耗（额度监控打底，S0 每日约 1 万条）</span></h2>
+        <div id="msgByDay"><div class="muted">暂无数据</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>自动刷新 <span class="hint">每 10 秒拉一次 /admin/overview</span>
+        <span class="spacer"><label><input type="checkbox" id="autoOverview" checked> 启用</label></span>
+      </h2>
+    </div>
+  </section>
+
+  <!-- ===== 设备管理 ===== -->
+  <section class="view" id="view-devices">
+    <div class="card">
+      <h2>注册新设备 <span class="hint">POST /admin/devices · 云侧注册 + 注册表落盘 + 密钥落盘</span></h2>
+      <div class="form-row">
+        <div class="field"><label>node_id（3~32 位字母/数字/下划线）</label>
+          <input id="regNode" placeholder="car_003" spellcheck="false"></div>
+        <div class="field"><label>名称</label>
+          <input id="regName" placeholder="3号巡检车"></div>
+        <div class="field"><label>渲染色</label>
+          <input id="regColor" type="color" value="#7a4be2"></div>
+        <button class="primary" id="btnRegister">注册</button>
+      </div>
+    </div>
+    <div class="card" id="secretCard">
+      <h2>⚠ 设备密钥（仅显示这一次，请立即复制保存）</h2>
+      <div class="secret" id="secretVal"></div>
+      <div class="muted" style="font-size:12px">
+        关闭本卡片后将无法再从任何界面查看该密钥（密钥表文件除外）。设备端用
+        <code>run_car.py --node &lt;node_id&gt;</code> 启动时会自动读取。
+        <button id="btnHideSecret">我已保存，关闭</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>设备列表 <span class="hint">GET /admin/devices</span>
+        <span class="spacer">
+          <label><input type="checkbox" id="autoDevices" checked> 自动刷新 5s</label>
+          <button id="btnDevices">刷新</button>
+        </span>
+      </h2>
+      <table>
+        <thead><tr>
+          <th>色</th><th>device_id</th><th>名称</th><th>在线</th><th>电量</th><th>冻结</th><th>操作</th>
+        </tr></thead>
+        <tbody id="devBody"><tr><td colspan="7" class="muted">尚未获取</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== 命令历史 ===== -->
+  <section class="view" id="view-commands">
+    <div class="card">
+      <h2>命令历史 <span class="hint">GET /admin/commands · commands.log 结构化，最新在前</span>
+        <span class="spacer">
+          <select id="cmdLimit">
+            <option value="50" selected>50 条</option>
+            <option value="100">100 条</option>
+            <option value="200">200 条</option>
+            <option value="500">500 条</option>
+          </select>
+          <button class="primary" id="btnCommands">刷新</button>
+        </span>
+      </h2>
+      <table>
+        <thead><tr>
+          <th>时间</th><th>设备</th><th>命令</th><th>参数</th><th>结果</th><th>详情</th>
+        </tr></thead>
+        <tbody id="cmdBody"><tr><td colspan="6" class="muted">尚未获取</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== 实时监控 ===== -->
+  <section class="view" id="view-monitor">
+    <div class="card">
+      <h2>实时监控（内嵌 fleet_view.html）
+        <span class="spacer"><button id="btnOpenFleet">新窗口打开 fleet_view</button>
+        <button id="btnReloadFrame">重新加载</button></span>
+      </h2>
+      <iframe id="monitorFrame" src="fleet_view.html"></iframe>
+    </div>
+  </section>
+</main>
+
+<script>
+"use strict";
+/* ======================================================================
+ * V3 管理后台（纯静态单文件，零依赖）
+ * 所有 /admin/* 请求带 X-Admin-Token（协议 v1.2 13.1）；401 统一处理：
+ * 清 token 弹回登录卡片。token 存 localStorage（后端重启即失效，
+ * 重新登录即可——内存 token 集合的设计取舍见 server/admin.py 头注释）。
+ * ==================================================================== */
+
+const $ = (id) => document.getElementById(id);
+const state = { view: "overview", timers: {} };
+
+/* ------------------------------------------------ fetch 封装（统一 token + 401） */
+async function api(method, path, body) {
+  const base = $("baseUrl").value.trim().replace(/\/+$/, "");
+  const headers = { "X-Admin-Token": localStorage.getItem("adminToken") || "" };
+  if (body) headers["Content-Type"] = "application/json";
+  let resp, data = null;
+  try {
+    resp = await fetch(base + path, {
+      method, headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    data = await resp.json().catch(() => null);
+  } catch (e) {
+    return { ok: false, status: 0, data: { ok: false, error: "网络错误（后端没启动？）: " + e } };
+  }
+  // 401 统一弹回登录（token 失效/后端重启）。login 本身的 401 由调用方
+  // 用 opts 跳过——这里通过 path 是否为 /admin/login 区分。
+  if (resp.status === 401 && path !== "/admin/login") {
+    logout(false);
+    return { ok: false, status: 401, data: { ok: false, error: "登录已过期" } };
+  }
+  return { ok: resp.ok && data && data.ok === true, status: resp.status, data };
+}
+
+/* ------------------------------------------------ 登录/退出 */
+function showLogin(show) {
+  $("loginWrap").style.display = show ? "flex" : "none";
+  $("mainWrap").style.display = show ? "none" : "block";
+  $("btnLogout").style.display = show ? "none" : "inline-block";
+  $("loginBadge").textContent = show ? "未登录" : "已登录";
+  $("loginBadge").className = show ? "badge" : "badge ok";
+  if (show) stopAllTimers(); else startTimers();
+}
+
+function logout(clearBadge) {
+  localStorage.removeItem("adminToken");
+  showLogin(true);
+  if (clearBadge !== false) $("loginErr").textContent = "已退出登录";
+}
+
+async function doLogin() {
+  const u = $("loginUser").value.trim();
+  const p = $("loginPass").value;
+  $("loginErr").textContent = "";
+  try {
+    const resp = await fetch($("baseUrl").value.trim().replace(/\/+$/, "") + "/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: u, password: p }),
+    });
+    const data = await resp.json().catch(() => null);
+    if (resp.ok && data && data.ok) {
+      localStorage.setItem("adminToken", data.token);
+      showLogin(false);
+      refreshOverview(); refreshDevices();
+    } else {
+      $("loginErr").textContent = (data && data.error) || ("登录失败 HTTP " + resp.status);
+    }
+  } catch (e) {
+    $("loginErr").textContent = "网络错误（后端没启动？）";
+  }
+}
+
+/* ------------------------------------------------ 视图切换 */
+function switchView(name) {
+  state.view = name;
+  document.querySelectorAll("#tabs button").forEach((b) =>
+    b.classList.toggle("active", b.dataset.view === name));
+  document.querySelectorAll(".view").forEach((v) =>
+    v.classList.toggle("active", v.id === "view-" + name));
+  // 切到即加载：总览/设备有定时刷新兜底，命令历史没有——首次进入主动拉一次，
+  // 避免用户面对空的"尚未获取"表格不知道要点刷新
+  if (name === "overview") refreshOverview();
+  if (name === "commands") refreshCommands();
+}
+
+/* ------------------------------------------------ 总览 */
+function bar(labelText, ratio, valText, cls) {
+  const pct = Math.max(0, Math.min(100, Math.round(ratio * 100)));
+  return `<div class="bar-row ${cls}">` +
+    `<span class="name">${escapeHtml(labelText)}</span>` +
+    `<span class="track"><span class="fill" style="width:${pct}%"></span></span>` +
+    `<span class="val">${escapeHtml(valText)}</span></div>`;
+}
+
+async function refreshOverview() {
+  const r = await api("GET", "/admin/overview");
+  if (!r.ok) return;
+  const d = r.data;
+  $("stOnline").textContent = d.online;
+  $("stOffline").textContent = d.offline;
+  $("stFrozen").textContent = d.frozen;
+  $("stToday").textContent = d.messages_today;
+
+  // 电量排行：以 100 为满量程
+  const maxBattery = 100;
+  $("batteryRank").innerHTML = d.battery_rank.length
+    ? d.battery_rank.map((c) =>
+        bar(c.name, (c.battery || 0) / maxBattery,
+            c.battery === null ? "无数据" : c.battery + "%", "battery")).join("")
+    : `<div class="muted">暂无设备</div>`;
+
+  // 7 天消息量：以峰值归一化（额度线 1 万/日太远，峰值比例更可读）
+  const counts = d.messages_by_day.map((x) => x.count);
+  const maxMsg = Math.max(1, ...counts);
+  $("msgByDay").innerHTML = d.messages_by_day.map((x) =>
+    bar(`${x.day.slice(5)}`, x.count / maxMsg, String(x.count), "msg")).join("")
+    + `<div class="muted" style="font-size:11px">条形按 7 天内峰值归一化；数值为当日行数（近似消息消耗）</div>`;
+}
+
+/* ------------------------------------------------ 设备管理 */
+async function refreshDevices() {
+  const r = await api("GET", "/admin/devices");
+  const tb = $("devBody");
+  if (!r.ok) {
+    if (r.status !== 401) tb.innerHTML = `<tr><td colspan="7" class="muted">获取失败：${escapeHtml(r.data.error || "HTTP " + r.status)}</td></tr>`;
+    return;
+  }
+  tb.innerHTML = "";
+  for (const c of r.data.devices) {
+    const tr = document.createElement("tr");
+    tr.innerHTML =
+      `<td><span class="swatch" style="background:${escapeHtml(c.color || "#999")}"></span></td>` +
+      `<td class="num">${escapeHtml(c.device_id)}</td>` +
+      `<td>${escapeHtml(c.name)}</td>` +
+      `<td><span class="pill ${c.online ? "on" : "off"}">${c.online ? "在线" : "离线"}</span></td>` +
+      `<td class="num">${c.battery === null ? "—" : c.battery}</td>` +
+      `<td>${c.frozen ? `<span class="pill frozen">已冻结</span>` : `<span class="pill ok">正常</span>`}</td>` +
+      `<td class="actions">${
+        c.frozen
+          ? `<button data-act="unfreeze" data-id="${escapeHtml(c.device_id)}" data-name="${escapeHtml(c.name)}">解冻</button>`
+          : `<button class="danger" data-act="freeze" data-id="${escapeHtml(c.device_id)}" data-name="${escapeHtml(c.name)}">冻结</button>`
+      }</td>`;
+    tb.appendChild(tr);
+  }
+}
+
+async function toggleFreeze(btn) {
+  const id = btn.dataset.id, name = btn.dataset.name;
+  const toFrozen = btn.dataset.act === "freeze";
+  // 冻结会让车真正连不上云、命令被拒——不可逆操作前二次确认
+  const tip = toFrozen
+    ? `确认冻结 ${name}（${id}）？\n冻结后该车将无法连接云端，控制命令也会被后端拒绝。`
+    : `确认解冻 ${name}（${id}）？解冻后该车可重新接入。`;
+  if (!confirm(tip)) return;
+  const r = await api("POST", `/admin/devices/${encodeURIComponent(id)}/${btn.dataset.act}`);
+  if (r.ok) { refreshDevices(); if (state.view === "overview") refreshOverview(); }
+  else if (r.status !== 401) alert("操作失败：" + (r.data.error || "HTTP " + r.status));
+}
+
+async function doRegister() {
+  const node = $("regNode").value.trim();
+  const name = $("regName").value.trim();
+  const color = $("regColor").value;
+  if (!node || !name) { alert("node_id 和名称必填"); return; }
+  const r = await api("POST", "/admin/devices", { node_id: node, name, color });
+  if (r.ok) {
+    // 密钥只此一次返回：醒目卡片展示，提示保存
+    $("secretVal").textContent = r.data.secret;
+    $("secretCard").style.display = "block";
+    $("regNode").value = ""; $("regName").value = "";
+    refreshDevices();
+  } else if (r.status !== 401) {
+    alert("注册失败：" + (r.data.error || "HTTP " + r.status));
+  }
+}
+
+/* ------------------------------------------------ 命令历史 */
+async function refreshCommands() {
+  const limit = $("cmdLimit").value;
+  const r = await api("GET", `/admin/commands?limit=${limit}`);
+  const tb = $("cmdBody");
+  if (!r.ok) {
+    if (r.status !== 401) tb.innerHTML = `<tr><td colspan="6" class="muted">获取失败：${escapeHtml(r.data.error || "HTTP " + r.status)}</td></tr>`;
+    return;
+  }
+  tb.innerHTML = "";
+  for (const it of r.data.items) {
+    const tr = document.createElement("tr");
+    // 结果配色：已执行绿 / 拒绝·失败红 / 已下发·无回执黄
+    const cls = it.status === "已执行" ? "ok"
+      : (it.status === "已拒绝" || it.status === "下发失败") ? "bad" : "warn";
+    tr.innerHTML =
+      `<td class="num">${escapeHtml(it.time)}</td>` +
+      `<td class="num">${escapeHtml(it.device_id || "—")}</td>` +
+      `<td>${escapeHtml(it.cmd || "—")}</td>` +
+      `<td class="num">${escapeHtml(JSON.stringify(it.paras))}</td>` +
+      `<td><span class="pill ${cls}">${escapeHtml(it.status)}</span></td>` +
+      `<td class="num">${escapeHtml(it.detail === null || it.detail === undefined ? "" : String(it.detail))}</td>`;
+    tb.appendChild(tr);
+  }
+  if (!r.data.items.length)
+    tb.innerHTML = `<tr><td colspan="6" class="muted">暂无命令记录（commands.log 为空或不存在）</td></tr>`;
+}
+
+/* ------------------------------------------------ 工具 */
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+/* ------------------------------------------------ 定时器（随视图启停） */
+function stopAllTimers() {
+  for (const t of Object.values(state.timers)) clearInterval(t);
+  state.timers = {};
+}
+function startTimers() {
+  stopAllTimers();
+  state.timers.overview = setInterval(() => {
+    if ($("autoOverview").checked) refreshOverview();
+  }, 10000);
+  state.timers.devices = setInterval(() => {
+    if ($("autoDevices").checked && state.view === "devices") refreshDevices();
+  }, 5000);
+}
+
+/* ------------------------------------------------ 事件绑定与启动 */
+$("btnLogin").onclick = doLogin;
+$("loginPass").addEventListener("keydown", (e) => { if (e.key === "Enter") doLogin(); });
+$("btnLogout").onclick = () => logout(true);
+$("tabs").addEventListener("click", (e) => {
+  if (e.target.dataset.view) switchView(e.target.dataset.view);
+});
+$("btnRegister").onclick = doRegister;
+$("btnHideSecret").onclick = () => { $("secretCard").style.display = "none"; };
+$("btnDevices").onclick = refreshDevices;
+$("devBody").addEventListener("click", (e) => {
+  if (e.target.dataset.act) toggleFreeze(e.target);
+});
+$("btnCommands").onclick = refreshCommands;
+$("cmdLimit").onchange = refreshCommands;
+$("btnOpenFleet").onclick = () => window.open("fleet_view.html", "_blank");
+$("btnReloadFrame").onclick = () => { $("monitorFrame").src = "fleet_view.html"; };
+
+// 已有 token（上次登录存下的）直接进主界面；失效的话第一个请求 401
+// 会被统一处理弹回登录
+if (localStorage.getItem("adminToken")) {
+  showLogin(false);
+  refreshOverview();
+} else {
+  showLogin(true);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+{
+  "devices": [
+    {
+      "device_id": "6ae440347f2e6c302fa846ee_car_001",
+      "name": "1号巡检车",
+      "color": "#e24b4a",
+      "frozen": false
+    },
+    {
+      "device_id": "6ae440347f2e6c302fa846ee_car_002",
+      "name": "2号巡检车",
+      "color": "#185fa5",
+      "frozen": false
+    },
+    {
+      "device_id": "6ae440347f2e6c302fa846ee_car_003",
+      "name": "3号巡检车",
+      "color": "#2ea44f",
+      "frozen": false
+    }
+  ]
+}

@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>V3 车队平台 · 接口测试台</title>
+<style>
+  :root {
+    --bg: #f3f5f8;          /* 页面底色（浅色主题） */
+    --card: #ffffff;        /* 卡片 */
+    --border: #e2e6ec;
+    --text: #1c2733;
+    --muted: #7a8694;
+    --accent: #185fa5;      /* 与 2 号车同色系，按钮主色 */
+    --accent-weak: #e8f1fa;
+    --ok: #1a7f4b;
+    --ok-bg: #e6f4ec;
+    --bad: #c0392b;
+    --bad-bg: #fbeeec;
+    --warn: #9a6700;
+    --warn-bg: #fff6e0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+    font-size: 14px;
+  }
+  header {
+    background: var(--card); border-bottom: 1px solid var(--border);
+    padding: 12px 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  }
+  header h1 { font-size: 17px; margin: 0; }
+  header .sub { color: var(--muted); font-size: 12px; }
+  .conn { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+  .conn input {
+    width: 230px; padding: 6px 10px; border: 1px solid var(--border);
+    border-radius: 6px; font-size: 13px;
+  }
+  button {
+    padding: 6px 14px; border: 1px solid var(--border); border-radius: 6px;
+    background: var(--card); color: var(--text); cursor: pointer; font-size: 13px;
+  }
+  button:hover { border-color: var(--accent); color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.primary:hover { opacity: .88; color: #fff; }
+  .badge {
+    padding: 4px 10px; border-radius: 12px; font-size: 12px; background: var(--bad-bg);
+    color: var(--bad);
+  }
+  .badge.ok { background: var(--ok-bg); color: var(--ok); }
+
+  main {
+    display: grid; grid-template-columns: 330px 1fr; gap: 14px;
+    padding: 14px 20px; max-width: 1280px; margin: 0 auto;
+    align-items: start;
+  }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  .col { display: flex; flex-direction: column; gap: 14px; }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .card h2 { font-size: 14px; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
+  .card h2 .hint { font-weight: normal; color: var(--muted); font-size: 12px; }
+  .card h2 .spacer { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+  .card h2 .spacer label { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 4px; cursor: pointer; }
+
+  /* 车辆卡片 */
+  .car-list { display: flex; flex-direction: column; gap: 8px; }
+  .car {
+    border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px;
+    cursor: pointer; display: flex; align-items: center; gap: 10px; background: #fff;
+  }
+  .car:hover { border-color: var(--accent); }
+  .car.selected { border-color: var(--accent); background: var(--accent-weak); }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: #c3cad2; flex: none; }
+  .dot.on { background: #1a7f4b; }
+  .car .name { font-weight: bold; }
+  .car .meta { color: var(--muted); font-size: 12px; margin-left: auto; text-align: right; }
+
+  /* 状态表 */
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th, td { padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+  th { color: var(--muted); font-weight: normal; }
+  td.num { font-variant-numeric: tabular-nums; }
+  .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+
+  /* 操控区 */
+  .pad-grid { display: grid; grid-template-columns: repeat(3, 64px); gap: 8px; justify-content: center; }
+  .pad-grid button { width: 64px; height: 48px; font-size: 16px; }
+  .pad-grid button:disabled { opacity: .4; cursor: not-allowed; }
+  .pad-grid .empty { visibility: hidden; }
+  .speed-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; justify-content: center; }
+  .speed-row input[type=range] { width: 200px; }
+  .speed-val { font-variant-numeric: tabular-nums; font-weight: bold; color: var(--accent); width: 32px; }
+  .target-line { text-align: center; color: var(--muted); font-size: 12px; margin-bottom: 10px; }
+  .target-line b { color: var(--text); }
+
+  /* AI 语音控车（步骤⑦） */
+  .ai-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .ai-row input {
+    flex: 1; min-width: 200px; padding: 8px 10px; border: 1px solid var(--border);
+    border-radius: 6px; font-size: 13px;
+  }
+  #btnTalk { min-width: 118px; height: 38px; font-size: 14px; user-select: none; }
+  #btnTalk.rec { background: var(--bad); border-color: var(--bad); color: #fff; }
+  #btnTalk:disabled { opacity: .45; cursor: not-allowed; }
+  .ai-chat {
+    margin-top: 10px; display: flex; flex-direction: column; gap: 6px;
+    max-height: 280px; overflow-y: auto;
+  }
+  .ai-tip { color: var(--muted); font-size: 12.5px; line-height: 1.8; }
+  .ai-msg { border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; font-size: 12.5px; line-height: 1.7; }
+  .ai-msg.you { background: var(--accent-weak); }
+  .ai-msg.ai  { background: #fafbfc; }
+  .ai-msg.err { background: var(--bad-bg); color: var(--bad); }
+  .ai-msg .who { color: var(--muted); margin-right: 6px; font-weight: bold; }
+  .ai-msg.err .who { color: var(--bad); }
+  .ai-act { font-family: Consolas, Menlo, monospace; }
+  .ai-act .ok  { color: var(--ok); font-weight: bold; }
+  .ai-act .bad { color: var(--bad); font-weight: bold; }
+
+  /* 单车状态 */
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 13px; }
+  .kv .k { color: var(--muted); }
+  .kv .v { font-variant-numeric: tabular-nums; }
+
+  /* 轨迹查询 */
+  .track-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .track-row input {
+    flex: 1; min-width: 160px; padding: 6px 10px; border: 1px solid var(--border);
+    border-radius: 6px; font-size: 12.5px;
+  }
+  .track-summary {
+    margin-top: 10px; font-size: 12.5px; color: var(--muted); line-height: 1.8;
+    font-variant-numeric: tabular-nums;
+  }
+  .track-summary b { color: var(--text); }
+
+  /* 错误用例 */
+  .err-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .err-row button { font-size: 12px; }
+
+  /* 日志 */
+  .log { display: flex; flex-direction: column; gap: 6px; max-height: 420px; overflow-y: auto; }
+  .entry { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .entry > summary {
+    padding: 7px 10px; cursor: pointer; font-size: 12.5px; display: flex; gap: 8px;
+    align-items: center; background: #fafbfc; list-style: none;
+  }
+  .entry > summary::-webkit-details-marker { display: none; }
+  .entry .tag { padding: 2px 8px; border-radius: 10px; font-size: 11px; flex: none; }
+  .tag.ok   { background: var(--ok-bg);   color: var(--ok); }
+  .tag.bad  { background: var(--bad-bg);  color: var(--bad); }
+  .tag.warn { background: var(--warn-bg); color: var(--warn); }
+  .entry .line { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .entry pre {
+    margin: 0; padding: 10px; background: #1f2933; color: #d9e2ec;
+    font-size: 12px; overflow-x: auto; max-height: 260px;
+  }
+  .log-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .log-toolbar .count { color: var(--muted); font-size: 12px; margin-left: auto; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>V3 车队平台 · 接口测试台</h1>
+    <div class="sub">对应《V3-接口协议设计》v1.0 第 4 节 · 供手动阶段测试与课堂演示用</div>
+  </div>
+  <div class="conn">
+    <input id="baseUrl" value="http://127.0.0.1:8000" spellcheck="false" title="业务后端地址">
+    <button class="primary" id="btnHealth">探活 /health</button>
+    <span class="badge" id="healthBadge">未连接</span>
+  </div>
+</header>
+
+<main>
+  <!-- ================= 左列 ================= -->
+  <div class="col">
+    <div class="card">
+      <h2>车列表
+        <span class="hint">GET /devices</span>
+        <span class="spacer">
+          <label><input type="checkbox" id="autoDevices" checked> 自动刷新 3s</label>
+          <button id="btnDevices">刷新</button>
+        </span>
+      </h2>
+      <div class="car-list" id="carList"><div style="color:var(--muted)">尚未获取（先点"探活"）</div></div>
+    </div>
+
+    <div class="card">
+      <h2>选中车实时状态
+        <span class="hint">GET /status?device_id=</span>
+        <span class="spacer">
+          <label><input type="checkbox" id="autoStatus"> 轮询 2s</label>
+          <button id="btnStatus">查一次</button>
+        </span>
+      </h2>
+      <div class="target-line">当前选中：<b id="selName">未选择</b></div>
+      <div class="kv" id="statusKv">
+        <span class="k">online</span><span class="v">—</span>
+        <span class="k">x / y</span><span class="v">—</span>
+        <span class="k">heading</span><span class="v">—</span>
+        <span class="k">speed</span><span class="v">—</span>
+        <span class="k">battery</span><span class="v">—</span>
+        <span class="k">time</span><span class="v">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 右列 ================= -->
+  <div class="col">
+    <div class="card">
+      <h2>控制台
+        <span class="hint">POST /command（同步命令，等车回执）</span>
+      </h2>
+      <div class="target-line">命令将发给：<b id="cmdTarget">未选择（先在左侧选车）</b></div>
+      <div class="pad-grid">
+        <button class="empty"></button>
+        <button data-cmd="FORWARD" title="前进">▲</button>
+        <button class="empty"></button>
+        <button data-cmd="LEFT" title="左转 15°">◀</button>
+        <button data-cmd="STOP" title="停止">■</button>
+        <button data-cmd="RIGHT" title="右转 15°">▶</button>
+        <button class="empty"></button>
+        <button data-cmd="BACK" title="后退">▼</button>
+        <button class="empty"></button>
+      </div>
+      <div class="speed-row">
+        <span style="color:var(--muted);font-size:12px">speed（仅前进/后退）</span>
+        <input type="range" id="speed" min="0" max="100" value="60">
+        <span class="speed-val" id="speedVal">60</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>AI 语音控车
+        <span class="hint">POST /ai/asr + /ai/command（步骤⑦）</span>
+      </h2>
+      <div class="target-line">控制目标：<b id="aiTarget">未选择（AI 听话里的车号派车）</b></div>
+      <div class="ai-row">
+        <button class="primary" id="btnTalk" title="按住开始录音，松开自动识别并执行">按住说话</button>
+        <input id="aiText" placeholder="或直接输入文字指令，如：1号车前进速度60然后左转" spellcheck="false">
+        <button class="primary" id="btnAiSend">执行</button>
+      </div>
+      <div class="ai-chat" id="aiChat">
+        <div class="ai-tip">
+          ① 按住「按住说话」录音，松开后自动识别 → 解析 → 执行；② 或直接打字点「执行」。<br>
+          话术示例：「1号车前进速度 60」「2号车左转然后停止」「前进」（未提车号时先在左侧选中一台车）。
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>车队状态
+        <span class="hint">GET /fleet/status（5s 缓存快照）</span>
+        <span class="spacer"><button id="btnFleet">刷新</button></span>
+      </h2>
+      <table>
+        <thead><tr>
+          <th>车</th><th>在线</th><th>x</th><th>y</th><th>朝向</th><th>速度</th><th>电量</th><th>上报时间</th>
+        </tr></thead>
+        <tbody id="fleetBody"><tr><td colspan="8" style="color:var(--muted)">尚未获取</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>轨迹查询
+        <span class="hint">GET /track（协议 7.3，历史轨迹回放数据源）</span>
+      </h2>
+      <div class="target-line">查询对象：<b id="trackTarget">未选择（先在左侧选车）</b></div>
+      <div class="track-row">
+        <input id="trackFrom" placeholder="from（可选）YYYY-MM-DD HH:MM" spellcheck="false">
+        <input id="trackTo" placeholder="to（可选）YYYY-MM-DD HH:MM" spellcheck="false">
+        <button class="primary" id="btnTrack">查询轨迹</button>
+      </div>
+      <div class="track-summary" id="trackSummary">尚未查询。不填时间窗 = 默认查最近 24 小时；也可填 Unix 秒。</div>
+    </div>
+
+    <div class="card">
+      <h2>错误用例
+        <span class="hint">协议 4.5：验证 400 拦截（不影响真车）</span>
+      </h2>
+      <div class="err-row">
+        <button id="btnErrUnreg">未注册 device_id（期望 400）</button>
+        <button id="btnErrCmd">未知 cmd=JUMP（期望 400）</button>
+        <button id="btnErrSpeed">speed=200 越界（期望 400）</button>
+        <button id="btnErrMissing">缺 device_id（期望 400）</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>请求日志 <span class="hint">点开看完整 JSON</span></h2>
+      <div class="log-toolbar">
+        <button id="btnClearLog">清空</button>
+        <span class="count" id="logCount">0 条</span>
+      </div>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+"use strict";
+/* ======================================================================
+ * V3 车队平台 · 接口测试台（纯静态单文件，无任何依赖）
+ * 数据源全部来自 V3 业务后端（app.py），后端已放行 CORS（Access-Control-Allow-Origin: *），
+ * 因此本页以 file:// 直接双击打开即可用，无需任何服务器。
+ * ==================================================================== */
+
+const $ = (id) => document.getElementById(id);
+const state = { selected: null, cars: [] };
+
+/* ------------------------------------------------ 通用请求 + 日志 */
+async function api(method, path, body, opts = {}) {
+  const base = $("baseUrl").value.trim().replace(/\/+$/, "");
+  const url = base + path;
+  const t0 = performance.now();
+  let resp, data = null, errText = null;
+  try {
+    resp = await fetch(url, {
+      method,
+      headers: body ? { "Content-Type": "application/json" } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    data = await resp.json().catch(() => null);
+  } catch (e) {
+    errText = String(e);
+  }
+  const ms = Math.round(performance.now() - t0);
+  const ok = !!resp && resp.ok && data && data.ok === true;
+
+  // 判定展示等级：HTTP 层面 ok 但业务 ok:false（如 504 无回执）也算"到达后端"
+  let tag, tagText;
+  if (errText)                    { tag = "bad";  tagText = "网络错误"; }
+  else if (ok)                    { tag = "ok";   tagText = `${resp.status} ${ms}ms`; }
+  else if (opts.expectStatus && resp && resp.status === opts.expectStatus) {
+    tag = "ok"; tagText = `${resp.status}（符合预期） ${ms}ms`;
+  }
+  else if (resp && (resp.status === 502 || resp.status === 504)) {
+    tag = "warn"; tagText = `${resp.status} ${ms}ms`;
+  }
+  else                            { tag = "bad";  tagText = `${resp ? resp.status : "???"} ${ms}ms`; }
+
+  addLog(method, path, body, tag, tagText, data, errText);
+  return { ok, status: resp ? resp.status : 0, data, errText, ms };
+}
+
+function addLog(method, path, body, tag, tagText, data, errText) {
+  const log = $("log");
+  const det = document.createElement("details");
+  det.className = "entry";
+  const shown = errText || JSON.stringify(data, null, 2) || "(空响应)";
+  const summary = `${method} ${path}` +
+    (body ? `  body=${JSON.stringify(body)}` : "");
+  det.innerHTML =
+    `<summary><span class="tag ${tag}">${tagText}</span>` +
+    `<span class="line">${escapeHtml(summary)}</span></summary>` +
+    `<pre>${escapeHtml(shown)}</pre>`;
+  log.prepend(det);
+  while (log.children.length > 60) log.removeChild(log.lastChild);   // 防内存膨胀
+  $("logCount").textContent = `${log.children.length} 条`;
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+/* ------------------------------------------------ 探活 */
+async function doHealth() {
+  const badge = $("healthBadge");
+  badge.textContent = "检测中…"; badge.className = "badge";
+  const r = await api("GET", "/health");
+  if (r.errText) { badge.textContent = "连接失败（后端没启动？）"; return; }
+  if (r.ok) {
+    badge.textContent = `在线 · ${r.data.total} 台 / ${r.data.online} 台在线`;
+    badge.className = "badge ok";
+    refreshDevices();
+    refreshFleet();
+  } else {
+    badge.textContent = `异常 HTTP ${r.status}`;
+  }
+}
+
+/* ------------------------------------------------ 车列表（选车） */
+async function refreshDevices() {
+  const r = await api("GET", "/devices", null, { silent: true });
+  const box = $("carList");
+  if (!r.ok) {
+    if (!r.errText) box.innerHTML = `<div style="color:var(--muted)">获取失败 HTTP ${r.status}</div>`;
+    return;
+  }
+  state.cars = r.data.devices;
+  // 保留已选中项；没有选中则默认选第一台在线的车
+  if (!state.selected && state.cars.length) {
+    const firstOn = state.cars.find((c) => c.online) || state.cars[0];
+    state.selected = firstOn.device_id;
+  }
+  box.innerHTML = "";
+  for (const c of state.cars) {
+    const div = document.createElement("div");
+    div.className = "car" + (c.device_id === state.selected ? " selected" : "");
+    div.innerHTML =
+      `<span class="dot ${c.online ? "on" : ""}"></span>` +
+      `<span class="name">${escapeHtml(c.name)}</span>` +
+      `<span class="meta">${c.online ? "在线" : "离线"}<br>电量 ${c.battery === null ? "—" : c.battery}</span>`;
+    div.onclick = () => { state.selected = c.device_id; renderSelection(); };
+    box.appendChild(div);
+  }
+  renderSelection();
+}
+
+function renderSelection() {
+  const car = state.cars.find((c) => c.device_id === state.selected);
+  $("selName").textContent = car ? `${car.name}（${car.device_id}）` : "未选择";
+  $("cmdTarget").textContent = car ? `${car.name}（${car.device_id}）` : "未选择（先在左侧选车）";
+  $("trackTarget").textContent = car ? `${car.name}（${car.device_id}）` : "未选择（先在左侧选车）";
+  // AI 卡的语义与手控不同：选了车 = 指令只发给这台车（device_id 优先）；
+  // 没选车 = 不带 device_id，由 AI 听话里的车号派车（协议 16.3）
+  $("aiTarget").textContent = car ? `${car.name}（指令只控这台车）` : "未选择（AI 听话里的车号派车）";
+  document.querySelectorAll(".car").forEach((el) =>
+    el.classList.toggle("selected", !!car && el.querySelector(".name").textContent === car.name));
+  if (!$("autoStatus").checked) $("statusKv").querySelectorAll(".v").forEach((v) => (v.textContent = "—"));
+}
+
+/* ------------------------------------------------ 单车状态 */
+async function queryStatus() {
+  if (!state.selected) { addLog("GET", "/status（未选车）", null, "warn", "跳过", { hint: "先在左侧选一台车" }); return; }
+  const r = await api("GET", `/status?device_id=${state.selected}`, null, { silent: true });
+  if (!r.ok) return;
+  const d = r.data;
+  const vals = $("statusKv").querySelectorAll(".v");
+  const fmt = (v) => (v === null || v === undefined ? "—" : v);
+  vals[0].textContent = d.online ? "在线" : "离线";
+  vals[1].textContent = `x=${fmt(d.x)}  y=${fmt(d.y)}`;
+  vals[2].textContent = fmt(d.heading);
+  vals[3].textContent = fmt(d.speed);
+  vals[4].textContent = fmt(d.battery);
+  vals[5].textContent = fmt(d.time);
+}
+
+/* ------------------------------------------------ 控制命令 */
+async function sendCommand(cmd) {
+  if (!state.selected) { addLog("POST", "/command（未选车）", null, "warn", "跳过", { hint: "先在左侧选一台车" }); return; }
+  const body = { device_id: state.selected, cmd };
+  if (cmd === "FORWARD" || cmd === "BACK") body.speed = Number($("speed").value);
+  const r = await api("POST", "/command", body, { expectStatus: 200 });
+  // 命令成功后立刻刷一轮状态，看得见变化
+  if (r.ok) { queryStatus(); refreshFleet(); }
+}
+document.querySelectorAll("[data-cmd]").forEach((btn) =>
+  btn.addEventListener("click", () => sendCommand(btn.dataset.cmd)));
+$("speed").addEventListener("input", () => ($("speedVal").textContent = $("speed").value));
+
+/* ------------------------------------------------ 车队状态 */
+async function refreshFleet() {
+  const r = await api("GET", "/fleet/status", null, { silent: true });
+  const tb = $("fleetBody");
+  if (!r.ok) { if (!r.errText) tb.innerHTML = `<tr><td colspan="8" style="color:var(--muted)">获取失败 HTTP ${r.status}</td></tr>`; return; }
+  tb.innerHTML = "";
+  for (const c of r.data.cars) {
+    const fmt = (v) => (v === null || v === undefined ? "—" : v);
+    const tr = document.createElement("tr");
+    tr.innerHTML =
+      `<td><span class="swatch" style="background:${escapeHtml(c.color || "#999")}"></span>${escapeHtml(c.name)}</td>` +
+      `<td>${c.online ? "✅ 在线" : "⛔ 离线"}</td>` +
+      `<td class="num">${fmt(c.x)}</td><td class="num">${fmt(c.y)}</td>` +
+      `<td class="num">${fmt(c.heading)}</td><td class="num">${fmt(c.speed)}</td>` +
+      `<td class="num">${fmt(c.battery)}</td><td class="num">${fmt(c.time)}</td>`;
+    tb.appendChild(tr);
+  }
+}
+
+/* ------------------------------------------------ 轨迹查询（协议 7.3） */
+async function queryTrack() {
+  if (!state.selected) { addLog("GET", "/track（未选车）", null, "warn", "跳过", { hint: "先在左侧选一台车" }); return; }
+  const params = new URLSearchParams({ device_id: state.selected });
+  const from = $("trackFrom").value.trim();
+  const to = $("trackTo").value.trim();
+  // 时间窗可选项：留空则走服务端缺省（最近 24 小时）
+  if (from) params.set("from", from);
+  if (to) params.set("to", to);
+  const r = await api("GET", `/track?${params}`, null, { silent: true });
+  const box = $("trackSummary");
+  if (!r.ok) {
+    box.textContent = `查询失败：${(r.data && r.data.error) || "HTTP " + r.status}`;
+    return;
+  }
+  const pts = r.data.points || [];
+  if (!pts.length) {
+    box.textContent = "共 0 点（该车在该时间窗内没有轨迹记录，先让车跑一跑再查）";
+    return;
+  }
+  // 卡片摘要：总点数 + 首末点坐标/时间（完整点列在请求日志里看 JSON）
+  const f = pts[0], l = pts[pts.length - 1];
+  box.innerHTML =
+    `共 <b>${pts.length}</b> 点（${escapeHtml(r.data.device_id)}）<br>` +
+    `首点 (${f.x}, ${f.y}) @ ${escapeHtml(f.t)}<br>` +
+    `末点 (${l.x}, ${l.y}) @ ${escapeHtml(l.t)}`;
+}
+
+/* ------------------------------------------------ 错误用例（期望 400） */
+const FAKE_ID = "000000000000000000000000_car_999";
+$("btnErrUnreg").onclick = () =>
+  api("POST", "/command", { device_id: FAKE_ID, cmd: "FORWARD", speed: 30 }, { expectStatus: 400 });
+$("btnErrCmd").onclick = () =>
+  api("POST", "/command", { device_id: state.selected, cmd: "JUMP" }, { expectStatus: 400 });
+$("btnErrSpeed").onclick = () =>
+  api("POST", "/command", { device_id: state.selected, cmd: "FORWARD", speed: 200 }, { expectStatus: 400 });
+$("btnErrMissing").onclick = () =>
+  api("POST", "/command", { cmd: "FORWARD", speed: 30 }, { expectStatus: 400 });
+
+/* ======================================================================
+ * AI 语音控车（步骤⑦，协议 16 节）
+ * 链路：麦克风 → WebAudio 采 Float32 → 拼 Int16 → 手写 44 字节 WAV 头
+ *       → POST /ai/asr 拿文字 → POST /ai/command 解析并执行 → 对话区渲染
+ * 文字指令路径：输入框 → 直接 POST /ai/command（跳过 ASR）。
+ * ==================================================================== */
+let recorder = null;    // 录音会话：{ctx, stream, src, proc, chunks, t0, timer}
+let recPending = false; // getUserMedia 是异步的：防"松手瞬间又按下"的重入
+
+function aiAppend(cls, html) {
+  const chat = $("aiChat");
+  const tip = chat.querySelector(".ai-tip");
+  if (tip) tip.remove();   // 首条消息出现后说明文字就退场
+  const div = document.createElement("div");
+  div.className = "ai-msg " + cls;
+  div.innerHTML = html;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;   // 自动滚到最新一条
+  while (chat.children.length > 40) chat.removeChild(chat.firstChild);  // 防膨胀
+}
+
+function renderAiActions(actions, results) {
+  // 每条动作一行 ✓/✗：与后端 results 下标一一对应（协议 16.3）
+  return (actions || []).map((a, i) => {
+    const r = (results && results[i]) || {};
+    const mark = r.ok ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>';
+    const sp = (a.cmd === "FORWARD" || a.cmd === "BACK") ? ` speed=${a.speed}` : "";
+    const detail = r.ok ? "" : `（${escapeHtml(r.detail || "失败")}）`;
+    return `<span class="ai-act">${mark} ${escapeHtml(a.cmd)}${sp}${detail}</span>`;
+  }).join("；");
+}
+
+async function runAiCommand(text) {
+  aiAppend("you", `<span class="who">[你说]</span>${escapeHtml(text)}`);
+  // 选了车就带 device_id（指定车优先语义）；没选车不带，让 AI 听车号
+  const body = { text };
+  if (state.selected) body.device_id = state.selected;
+  const r = await api("POST", "/ai/command", body);
+  if (r.errText) {
+    aiAppend("err", `<span class="who">[AI]</span>网络错误：${escapeHtml(r.errText)}（后端没启动？）`);
+    return;
+  }
+  if (!r.data || r.data.ok !== true) {
+    aiAppend("err", `<span class="who">[AI]</span>${escapeHtml((r.data && r.data.error) || "HTTP " + r.status)}`);
+    return;
+  }
+  const d = r.data;
+  aiAppend("ai",
+    `<span class="who">[AI]</span>${escapeHtml(d.reply || "好的。")}<br>` +
+    `<span class="who">[目标]</span>${d.car ? escapeHtml(d.car.name) : "未指定"}<br>` +
+    `<span class="who">[执行]</span>${renderAiActions(d.actions, d.results) || "（无动作）"}`);
+  queryStatus();   // 控制完成后立刻刷一轮状态，看得见车动
+  refreshFleet();
+}
+
+/* ---- WAV 编码：标准 44 字节 PCM 头 + Int16 样本 ---- */
+function makeWavBlob(samples, sampleRate) {
+  const buf = new ArrayBuffer(44 + samples.length * 2);
+  const v = new DataView(buf);
+  const wstr = (off, s) => { for (let i = 0; i < s.length; i++) v.setUint8(off + i, s.charCodeAt(i)); };
+  wstr(0, "RIFF");
+  v.setUint32(4, 36 + samples.length * 2, true);  // RIFF 块大小 = 36 + 数据长
+  wstr(8, "WAVE");
+  wstr(12, "fmt ");
+  v.setUint32(16, 16, true);              // fmt 块长（PCM 固定 16）
+  v.setUint16(20, 1, true);               // 格式 = PCM
+  v.setUint16(22, 1, true);               // 单声道
+  v.setUint32(24, sampleRate, true);      // 采样率
+  v.setUint32(28, sampleRate * 2, true);  // 字节率 = rate × 声道 × 2字节
+  v.setUint16(32, 2, true);               // 块对齐 = 声道 × 2字节
+  v.setUint16(34, 16, true);              // 位深
+  wstr(36, "data");
+  v.setUint32(40, samples.length * 2, true);
+  new Int16Array(buf, 44).set(samples);
+  return new Blob([buf], { type: "audio/wav" });
+}
+
+async function startRec() {
+  if (recorder || recPending) return;
+  recPending = true;
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      aiAppend("err", "<span class=\"who\">[AI]</span>当前浏览器不支持麦克风录音（file:// 下 Chrome/Edge 可用，或换最新浏览器）");
+      $("btnTalk").disabled = true;
+      return;
+    }
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        // 关 AGC/降噪：识别引擎对原始音频更友好（浏览器处理会压语速动态）
+        audio: { channelCount: 1, echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+      });
+    } catch (e) {
+      const why = e && e.name === "NotAllowedError" ? "权限被拒绝（请在浏览器地址栏允许麦克风）" : String(e.name || e);
+      aiAppend("err", `<span class="who">[AI]</span>无法访问麦克风：${escapeHtml(why)}`);
+      $("btnTalk").disabled = true;
+      return;
+    }
+    // sampleRate:16000 → 浏览器自动把麦克风流重采样到 16k（后端 ASR 期望 16k）
+    const ctx = new AudioContext({ sampleRate: 16000 });
+    const src = ctx.createMediaStreamSource(stream);
+    const proc = ctx.createScriptProcessor(4096, 1, 1);
+    const chunks = [];
+    proc.onaudioprocess = (ev) => chunks.push(new Float32Array(ev.inputBuffer.getChannelData(0)));
+    src.connect(proc);
+    proc.connect(ctx.destination);  // ScriptProcessor 必须连到 destination 才会驱动回调
+    recorder = { ctx, stream, src, proc, chunks, t0: Date.now(), timer: null };
+    $("btnTalk").classList.add("rec");
+    recorder.timer = setInterval(() => {
+      $("btnTalk").textContent = `录音中 ${Math.floor((Date.now() - recorder.t0) / 1000)}s`;
+    }, 200);
+  } finally {
+    recPending = false;
+  }
+}
+
+function stopRec() {
+  if (!recorder) return;
+  const r = recorder;
+  recorder = null;
+  clearInterval(r.timer);
+  r.proc.onaudioprocess = null;
+  try { r.src.disconnect(); r.proc.disconnect(); } catch (e) { /* 已断开则忽略 */ }
+  r.stream.getTracks().forEach((t) => t.stop());  // 释放麦克风（指示灯熄灭）
+  r.ctx.close();
+  $("btnTalk").classList.remove("rec");
+  $("btnTalk").textContent = "按住说话";
+
+  // Float32(-1~1) → Int16：一段话没采到任何样本就直接报"没听到"
+  let total = 0;
+  for (const c of r.chunks) total += c.length;
+  if (!total) { aiAppend("err", "<span class=\"who\">[AI]</span>没有录到声音，再试一次"); return; }
+  const pcm = new Int16Array(total);
+  let off = 0;
+  for (const c of r.chunks) {
+    for (let i = 0; i < c.length; i++) {
+      const s = Math.max(-1, Math.min(1, c[i]));
+      pcm[off++] = s < 0 ? s * 0x8000 : s * 0x7fff;
+    }
+  }
+  transcribeAndRun(makeWavBlob(pcm, r.ctx.sampleRate));
+}
+
+async function transcribeAndRun(blob) {
+  $("btnTalk").textContent = "识别中…";
+  const base = $("baseUrl").value.trim().replace(/\/+$/, "");
+  try {
+    // /ai/asr 请求体是音频字节不是 JSON，故不走通用 api()，单独 fetch
+    const resp = await fetch(base + "/ai/asr", {
+      method: "POST",
+      headers: { "Content-Type": "audio/wav" },
+      body: blob,
+    });
+    const data = await resp.json().catch(() => null);
+    const ok = !!data && data.ok === true;
+    addLog("POST", `/ai/asr（音频 ${blob.size} 字节）`, null,
+      ok ? "ok" : "bad", `${resp.status}`, data, null);
+    if (!ok) {
+      aiAppend("err", `<span class="who">[AI]</span>语音识别失败：${escapeHtml((data && data.error) || "HTTP " + resp.status)}`);
+      return;
+    }
+    const text = (data.text || "").trim();
+    if (!text) {
+      aiAppend("err", "<span class=\"who\">[AI]</span>没听清你说什么（识别结果为空），靠近点再说一遍");
+      return;
+    }
+    await runAiCommand(text);
+  } catch (e) {
+    aiAppend("err", `<span class="who">[AI]</span>识别请求失败：${escapeHtml(String(e))}`);
+  } finally {
+    $("btnTalk").textContent = "按住说话";
+  }
+}
+
+/* 按住说话：mouse + touch 双通道；preventDefault 防止手机上按住触发长按菜单 */
+const talkBtn = $("btnTalk");
+talkBtn.addEventListener("mousedown", (e) => { e.preventDefault(); startRec(); });
+talkBtn.addEventListener("mouseup", (e) => { e.preventDefault(); stopRec(); });
+talkBtn.addEventListener("mouseleave", () => stopRec());   // 按住时划出按钮 = 松手
+talkBtn.addEventListener("touchstart", (e) => { e.preventDefault(); startRec(); }, { passive: false });
+talkBtn.addEventListener("touchend", (e) => { e.preventDefault(); stopRec(); }, { passive: false });
+talkBtn.addEventListener("contextmenu", (e) => e.preventDefault());
+
+/* 文字指令路径 */
+$("btnAiSend").onclick = () => {
+  const t = $("aiText").value.trim();
+  if (!t) return;
+  $("aiText").value = "";
+  runAiCommand(t);
+};
+$("aiText").addEventListener("keydown", (e) => { if (e.key === "Enter") $("btnAiSend").click(); });
+
+/* ------------------------------------------------ 定时器与事件绑定 */
+$("btnHealth").onclick = doHealth;
+$("btnDevices").onclick = refreshDevices;
+$("btnStatus").onclick = queryStatus;
+$("btnFleet").onclick = refreshFleet;
+$("btnTrack").onclick = queryTrack;
+$("btnClearLog").onclick = () => { $("log").innerHTML = ""; $("logCount").textContent = "0 条"; };
+$("baseUrl").addEventListener("change", doHealth);
+
+setInterval(() => { if ($("autoDevices").checked) refreshDevices(); }, 3000);
+setInterval(() => { if ($("autoStatus").checked) queryStatus(); }, 2000);
+
+/* 进页面自动探活一次；后端没开也不报弹窗，看右上角徽标即可 */
+doHealth();
+</script>
+</body>
+</html>

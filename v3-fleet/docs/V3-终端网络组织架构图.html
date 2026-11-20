@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>V3 巡检车队平台 · 六端网络组织架构图</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --surface:#ffffff; --line:#e3e6ec; --line-2:#d0d5dd;
+    --text:#1f2329; --text-2:#5f6672; --text-3:#8b929e;
+    --blue:#185fa5; --purple:#534ab7; --green:#0f6e56; --coral:#c05a2e;
+    --amber:#a8680f; --gray:#7a8290;
+    --ok-bg:#e1f5ee; --ok-fg:#0f6e56;
+    --part-bg:#faeeda; --part-fg:#854f0b;
+    --todo-bg:#f1efe8; --todo-fg:#5f5e5a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+       font-family:"PingFang SC","Microsoft YaHei","Segoe UI",system-ui,sans-serif;
+       font-size:13px;line-height:1.6}
+  .top{background:var(--surface);border-bottom:1px solid var(--line);padding:14px 22px;
+       display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .top h1{font-size:17px;font-weight:600;margin:0;letter-spacing:.2px}
+  .top .sub{color:var(--text-2);font-size:12px;margin-top:2px}
+  .top .spacer{flex:1}
+  button{font-family:inherit;font-size:12px;padding:7px 13px;border-radius:8px;
+         border:1px solid var(--line-2);background:var(--surface);color:var(--text);
+         cursor:pointer;transition:.15s}
+  button:hover{border-color:var(--blue);color:var(--blue)}
+  button.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+  button.primary:hover{background:#0c447c;color:#fff}
+  .wrap{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:16px;padding:16px 22px 24px;
+        align-items:start;max-width:1680px;margin:0 auto}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px}
+  .canvas-card{padding:8px 10px 10px;overflow:hidden}
+  .canvas-head{display:flex;justify-content:space-between;align-items:center;
+               padding:6px 10px 2px;color:var(--text-2);font-size:12px}
+  svg{width:100%;height:auto;display:block}
+  .legend{display:flex;flex-wrap:wrap;gap:12px;padding:10px 12px 4px;border-top:1px solid var(--line);
+          margin-top:6px;color:var(--text-2);font-size:11.5px}
+  .legend i{display:inline-block;width:20px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+  .legend i.dash{background:repeating-linear-gradient(90deg,#7a8290 0 5px,transparent 5px 9px)}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;vertical-align:middle;margin-right:5px}
+  .dot.ok{background:var(--green)} .dot.part{background:var(--amber)} .dot.todo{background:var(--gray)}
+  .tip{padding:8px 12px 10px;color:var(--text-3);font-size:11.5px}
+
+  /* SVG */
+  .node{cursor:pointer;transition:opacity .2s}
+  .node .card{fill:#fff;stroke:var(--line-2);stroke-width:1}
+  .node:hover .card{stroke:var(--blue);stroke-width:2}
+  .node.active .card{stroke-width:2.5}
+  .node.dim{opacity:.28}
+  .node.planned .card{stroke-dasharray:6 4;fill:#fafafa}
+  .node.planned .n-title,.node.planned .n-sub,.node.planned .n-meta{fill:var(--text-3)}
+  .n-title{font-size:14px;font-weight:600;fill:var(--text)}
+  .n-sub{font-size:11px;fill:var(--text-2)}
+  .n-meta{font-size:10.5px;fill:var(--text-3)}
+  .n-icon{font-size:12px;font-weight:600;fill:#fff}
+  .link{cursor:pointer;transition:opacity .2s}
+  .link .line{fill:none;stroke-width:2.4}
+  .link .hit{fill:none;stroke:transparent;stroke-width:26}
+  .link:hover .line{stroke-width:4}
+  .link.active .line{stroke-width:4.2}
+  .link.dim{opacity:.18}
+  .link.planned .line{stroke-dasharray:7 5}
+  .badge rect{fill:#fff;stroke:var(--line-2);stroke-width:.8}
+  .badge text{font-size:11px;font-weight:500;fill:var(--text)}
+  .flow-num{font-size:10px;fill:var(--text-3)}
+  .side-note{font-size:10.5px;fill:var(--text-3)}
+
+  /* panel */
+  .panel{padding:18px 18px 22px;max-height:calc(100vh - 110px);overflow:auto;position:sticky;top:16px}
+  .panel .kicker{display:inline-block;font-size:11px;padding:2px 9px;border-radius:20px;
+                 background:var(--blue);color:#fff;margin-bottom:8px}
+  .panel h2{font-size:17px;font-weight:600;margin:0 0 3px}
+  .panel .lead{color:var(--text-2);font-size:12px;margin:0 0 12px}
+  .statusline{display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:9px;
+              background:var(--part-bg);color:var(--part-fg);font-size:12px;margin-bottom:14px}
+  .statusline.ok{background:var(--ok-bg);color:var(--ok-fg)}
+  .statusline.todo{background:var(--todo-bg);color:var(--todo-fg)}
+  .panel h3{font-size:13px;font-weight:600;margin:16px 0 7px;padding-bottom:5px;
+            border-bottom:1px solid var(--line)}
+  .panel p{margin:0 0 8px;color:var(--text-2)}
+  .panel ul{margin:0;padding-left:18px;color:var(--text-2)}
+  .panel li{margin:3px 0}
+  table{width:100%;border-collapse:collapse;font-size:11.5px}
+  th{text-align:left;color:var(--text-3);font-weight:500;padding:6px 6px;border-bottom:1px solid var(--line)}
+  td{padding:7px 6px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--text-2)}
+  td code{font-family:Consolas,Menlo,monospace;font-size:11px;color:var(--text);
+          background:#f4f6f8;padding:1px 5px;border-radius:4px;word-break:break-all}
+  .chip{display:inline-block;font-size:10px;padding:1px 7px;border-radius:20px;white-space:nowrap}
+  .chip.ok{background:var(--ok-bg);color:var(--ok-fg)}
+  .chip.part{background:var(--part-bg);color:var(--part-fg)}
+  .chip.todo{background:var(--todo-bg);color:var(--todo-fg)}
+  pre{background:#f7f8fa;border:1px solid var(--line);border-radius:9px;padding:10px 12px;
+      font-family:Consolas,Menlo,monospace;font-size:11px;line-height:1.55;color:#333;
+      overflow:auto;margin:6px 0 0;white-space:pre}
+  .note{background:#f8f9fb;border-left:3px solid var(--line-2);padding:8px 11px;
+        border-radius:0 8px 8px 0;color:var(--text-2);font-size:11.5px;margin-top:8px}
+  .flow-step{border-left:3px solid var(--blue);padding:8px 12px;margin:8px 0;
+             background:#f4f8fd;border-radius:0 8px 8px 0}
+  .flow-step b{color:var(--blue)}
+  .flow-step.done{opacity:.5}
+  .kbd{font-family:Consolas,monospace;background:#f1efe8;padding:1px 5px;border-radius:4px;font-size:11px}
+  @media(max-width:1100px){
+    .wrap{grid-template-columns:1fr}
+    .panel{position:static;max-height:none}
+  }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div>
+    <h1>V3 巡检车队平台 · 六端网络组织架构图</h1>
+    <div class="sub">APP / Admin 管理端 / 业务后端 / IoTDA 云端 / 模拟小车端 / HTML 视图端（+ AI 模块规划占位）—— 点击节点或连线查看详情</div>
+  </div>
+  <div class="spacer"></div>
+  <button class="primary" id="playBtn" onclick="toggleFlow('data')">▶ 播放数据闭环</button>
+  <button id="playAdminBtn" onclick="toggleFlow('admin')">▶ 播放管理闭环</button>
+  <button onclick="reset()">复位视图</button>
+</div>
+
+<div class="wrap">
+  <div class="card canvas-card">
+    <div class="canvas-head">
+      <span>链路与接口总览（实线 = 已实现，虚线 = 规划中，圆点 = 实现状态）</span>
+      <span>依据：V3-接口协议设计.md v1.3 · V3-开发路线图.md（进度截至 2026-11-07）</span>
+    </div>
+
+    <svg id="diagram" viewBox="0 0 900 620" role="img" aria-label="六端架构交互图">
+      <defs>
+        <marker id="a-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M1 1L9 5L1 9" fill="none" stroke="#185fa5" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker>
+        <marker id="a-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M1 1L9 5L1 9" fill="none" stroke="#534ab7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker>
+        <marker id="a-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M1 1L9 5L1 9" fill="none" stroke="#0f6e56" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker>
+        <marker id="a-coral" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M1 1L9 5L1 9" fill="none" stroke="#c05a2e" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker>
+        <marker id="a-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M1 1L9 5L1 9" fill="none" stroke="#a8680f" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker>
+        <marker id="a-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M1 1L9 5L1 9" fill="none" stroke="#7a8290" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker>
+      </defs>
+
+      <!-- 连线（双向箭头：两端 marker 表示请求/响应或上/下行数据；L7 虚线为规划中） -->
+      <g id="links">
+        <g class="link" data-id="L1" onclick="selectLink('L1')">
+          <path class="hit" d="M270,152 C315,152 300,282 345,282"/>
+          <path class="line" stroke="#185fa5" marker-start="url(#a-blue)" marker-end="url(#a-blue)"
+                d="M270,152 C315,152 300,282 345,282"/>
+          <g class="badge" transform="translate(210,206)">
+            <rect width="142" height="26" rx="8"/>
+            <circle cx="14" cy="13" r="4" fill="#a8680f"/>
+            <text x="25" y="17">L1 · HTTP :8000</text>
+          </g>
+        </g>
+        <g class="link" data-id="L6" onclick="selectLink('L6')">
+          <path class="hit" d="M450,204 L450,258"/>
+          <path class="line" stroke="#a8680f" marker-start="url(#a-amber)" marker-end="url(#a-amber)"
+                d="M450,204 L450,258"/>
+          <g class="badge" transform="translate(360,220)">
+            <rect width="150" height="26" rx="8"/>
+            <circle cx="14" cy="13" r="4" fill="#0f6e56"/>
+            <text x="25" y="17">L6 · /admin/* HTTP</text>
+          </g>
+        </g>
+        <g class="link" data-id="L2" onclick="selectLink('L2')">
+          <path class="hit" d="M555,290 C600,290 585,152 630,152"/>
+          <path class="line" stroke="#534ab7" marker-start="url(#a-purple)" marker-end="url(#a-purple)"
+                d="M555,290 C600,290 585,152 630,152"/>
+          <g class="badge" transform="translate(524,206)">
+            <rect width="160" height="26" rx="8"/>
+            <circle cx="14" cy="13" r="4" fill="#0f6e56"/>
+            <text x="25" y="17">L2 · HTTPS 应用侧</text>
+          </g>
+        </g>
+        <g class="link" data-id="L3" onclick="selectLink('L3')">
+          <path class="hit" d="M735,204 L735,420"/>
+          <path class="line" stroke="#0f6e56" marker-start="url(#a-green)" marker-end="url(#a-green)"
+                d="M735,204 L735,420"/>
+          <g class="badge" transform="translate(640,298)">
+            <rect width="190" height="26" rx="8"/>
+            <circle cx="14" cy="13" r="4" fill="#0f6e56"/>
+            <text x="25" y="17">L3 · MQTT/TLS 8883</text>
+          </g>
+        </g>
+        <g class="link" data-id="L4" onclick="selectLink('L4')">
+          <path class="hit" d="M270,472 C315,472 300,338 345,338"/>
+          <path class="line" stroke="#c05a2e" marker-start="url(#a-coral)" marker-end="url(#a-coral)"
+                d="M270,472 C315,472 300,338 345,338"/>
+          <g class="badge" transform="translate(226,392)">
+            <rect width="172" height="26" rx="8"/>
+            <circle cx="14" cy="13" r="4" fill="#0f6e56"/>
+            <text x="25" y="17">L4 · WS 8889 / HTTP</text>
+          </g>
+        </g>
+        <g class="link planned" data-id="L7" onclick="selectLink('L7')">
+          <path class="hit" d="M270,310 L345,310"/>
+          <path class="line" stroke="#7a8290" marker-start="url(#a-gray)" marker-end="url(#a-gray)"
+                d="M270,310 L345,310"/>
+        </g>
+      </g>
+
+      <!-- 六端节点 + AI 规划占位 -->
+      <g id="nodes">
+        <g class="node" data-id="app" onclick="selectNode('app')">
+          <rect class="card" x="60" y="100" width="210" height="104" rx="12" stroke="#185fa5"/>
+          <circle cx="94" cy="134" r="14" fill="#185fa5"/><text class="n-icon" x="94" y="134" text-anchor="middle" dominant-baseline="central">端</text>
+          <text class="n-title" x="118" y="131">APP 控制端</text>
+          <text class="n-sub" x="118" y="149">鸿蒙 ArkTS · ⑥ 待实测</text>
+          <circle cx="250" cy="118" r="5" fill="#a8680f"/>
+          <line x1="78" y1="164" x2="252" y2="164" stroke="#eceff3"/>
+          <text class="n-meta" x="78" y="182">选车绑定 / 状态轮询 / 命令下发</text>
+          <text class="n-meta" x="78" y="198">CarCtrlFleet · 10.0.2.2:8000</text>
+        </g>
+
+        <g class="node" data-id="admin" onclick="selectNode('admin')">
+          <rect class="card" x="345" y="100" width="210" height="104" rx="12" stroke="#a8680f"/>
+          <circle cx="379" cy="134" r="14" fill="#a8680f"/><text class="n-icon" x="379" y="134" text-anchor="middle" dominant-baseline="central">管</text>
+          <text class="n-title" x="403" y="131">Admin 管理端</text>
+          <text class="n-sub" x="403" y="149">B/S 后台 · ⑤ 已实现</text>
+          <circle cx="535" cy="118" r="5" fill="#0f6e56"/>
+          <line x1="363" y1="164" x2="537" y2="164" stroke="#eceff3"/>
+          <text class="n-meta" x="363" y="182">登录 / 注册冻结 / 命令历史 / 总览</text>
+          <text class="n-meta" x="363" y="198">admin.html · X-Admin-Token</text>
+        </g>
+
+        <g class="node" data-id="iotda" onclick="selectNode('iotda')">
+          <rect class="card" x="630" y="100" width="210" height="104" rx="12" stroke="#534ab7"/>
+          <circle cx="664" cy="134" r="14" fill="#534ab7"/><text class="n-icon" x="664" y="134" text-anchor="middle" dominant-baseline="central">云</text>
+          <text class="n-title" x="688" y="131">IoTDA 云端</text>
+          <text class="n-sub" x="688" y="149">华为云 S0 · 已开通</text>
+          <circle cx="820" cy="118" r="5" fill="#0f6e56"/>
+          <line x1="648" y1="164" x2="822" y2="164" stroke="#eceff3"/>
+          <text class="n-meta" x="648" y="182">影子 / 命令 / 注册冻结 / 规则</text>
+          <text class="n-meta" x="648" y="198">双车 + 动态注册 car_003</text>
+        </g>
+
+        <g class="node planned" data-id="ai" onclick="selectNode('ai')">
+          <rect class="card" x="60" y="258" width="210" height="104" rx="12" stroke="#7a8290"/>
+          <circle cx="94" cy="292" r="14" fill="#7a8290"/><text class="n-icon" x="94" y="292" text-anchor="middle" dominant-baseline="central">智</text>
+          <text class="n-title" x="118" y="289">AI 模块（规划）</text>
+          <text class="n-sub" x="118" y="307">步骤⑦ · 待开发</text>
+          <circle cx="250" cy="276" r="5" fill="#7a8290"/>
+          <line x1="78" y1="322" x2="252" y2="322" stroke="#eceff3"/>
+          <text class="n-meta" x="78" y="340">自然语言控车 / 巡检报告</text>
+          <text class="n-meta" x="78" y="356">POST /ai/command（待设计）</text>
+        </g>
+
+        <g class="node" data-id="backend" onclick="selectNode('backend')">
+          <rect class="card" x="345" y="258" width="210" height="104" rx="12" stroke="#534ab7"/>
+          <circle cx="379" cy="292" r="14" fill="#534ab7"/><text class="n-icon" x="379" y="292" text-anchor="middle" dominant-baseline="central">服</text>
+          <text class="n-title" x="403" y="289">业务后端</text>
+          <text class="n-sub" x="403" y="307">Flask :8000 + WS :8889</text>
+          <circle cx="535" cy="276" r="5" fill="#0f6e56"/>
+          <line x1="363" y1="322" x2="537" y2="322" stroke="#eceff3"/>
+          <text class="n-meta" x="363" y="340">缓存 / 路由 / 审计 / 轨迹 / 管理</text>
+          <text class="n-meta" x="363" y="356">6 业务接口 + 6 管理接口 + 广播</text>
+        </g>
+
+        <g class="node" data-id="car" onclick="selectNode('car')">
+          <rect class="card" x="630" y="420" width="210" height="104" rx="12" stroke="#0f6e56"/>
+          <circle cx="664" cy="454" r="14" fill="#0f6e56"/><text class="n-icon" x="664" y="454" text-anchor="middle" dominant-baseline="central">车</text>
+          <text class="n-title" x="688" y="451">模拟小车端</text>
+          <text class="n-sub" x="688" y="469">Python paho · 双车 + 通用</text>
+          <circle cx="820" cy="438" r="5" fill="#0f6e56"/>
+          <line x1="648" y1="484" x2="822" y2="484" stroke="#eceff3"/>
+          <text class="n-meta" x="648" y="502">属性上报 / 命令执行 / 回执应答</text>
+          <text class="n-meta" x="648" y="518">car_001/002 + run_car.py</text>
+        </g>
+
+        <g class="node" data-id="web" onclick="selectNode('web')">
+          <rect class="card" x="60" y="420" width="210" height="104" rx="12" stroke="#c05a2e"/>
+          <circle cx="94" cy="454" r="14" fill="#c05a2e"/><text class="n-icon" x="94" y="454" text-anchor="middle" dominant-baseline="central">页</text>
+          <text class="n-title" x="118" y="451">HTML 视图端</text>
+          <text class="n-sub" x="118" y="469">浏览器 · ④ 已实现</text>
+          <circle cx="250" cy="438" r="5" fill="#0f6e56"/>
+          <line x1="78" y1="484" x2="252" y2="484" stroke="#eceff3"/>
+          <text class="n-meta" x="78" y="502">WS 实时分轨 / 回放 / HTTP 兜底</text>
+          <text class="n-meta" x="78" y="518">fleet_view.html + test_console</text>
+        </g>
+      </g>
+
+      <text class="side-note" x="630" y="268">云侧（物模型 / MQTT 协议）零改动</text>
+      <text class="side-note" x="630" y="286">仅调用来源增加 Admin 管理端</text>
+      <text class="flow-num" x="450" y="560" text-anchor="middle">控制流：APP / Admin → 后端 → IoTDA → 小车 → 回执原路返回 ｜ 状态流：小车 → 影子(5s) → 缓存 → WS:8889 → 网页 / 后台</text>
+      <text class="flow-num" x="450" y="582" text-anchor="middle">L5 = 后端内部（注册表 / 密钥 / 日志 / 轨迹库，不画连线）· L7 = AI 模块（步骤⑦ 规划中，虚线）· 实线 = 已实现</text>
+    </svg>
+
+    <div class="legend">
+      <span><i style="background:#185fa5"></i>L1 APP ↔ 后端（HTTP）</span>
+      <span><i style="background:#534ab7"></i>L2 后端 ↔ 云端（HTTPS/SDK）</span>
+      <span><i style="background:#0f6e56"></i>L3 云端 ↔ 小车（MQTT）</span>
+      <span><i style="background:#c05a2e"></i>L4 网页 ↔ 后端（WS/HTTP）</span>
+      <span><i style="background:#a8680f"></i>L6 管理端 ↔ 后端（/admin/*）</span>
+      <span><i class="dash"></i>L7 AI 模块（规划）</span>
+      <span><span class="dot ok"></span>已实现</span>
+      <span><span class="dot part"></span>部分/待实测</span>
+      <span><span class="dot todo"></span>规划中</span>
+    </div>
+    <div class="tip">操作：点击任意连线查看接口说明 · 点击任意端查看节点说明 · 点击空白或按 <span class="kbd">Esc</span> 复位 · 顶部两个按钮分别播放数据闭环与管理闭环 · URL 锚点如 <span class="kbd">#L6</span> / <span class="kbd">#admin</span> 可直达</div>
+  </div>
+
+  <div class="card panel" id="panel"></div>
+</div>
+
+<script>
+/* ============ 数据：六端节点 + AI 规划占位 ============ */
+const NODES = {
+  app: {
+    tag:'端节点 ①', name:'APP 控制端', sub:'鸿蒙 ArkTS · 控制端 · 用户直接操作的入口',
+    state:'part', stateText:'开发完成，待模拟器实测：新工程 CarCtrlFleet 已构建通过（步骤⑥），尚需在 DevEco Studio 模拟器跑通"选车→控车→看对应车动"',
+    desc:'车队的用户入口。V2 的 CarCtrlCloud 是单车版；V3 的 CarCtrlFleet 增加「选车页 → 绑定 → 控制指定车」，所有请求携带 device_id，冻结设备在选车卡片置灰拒绑。',
+    stack:['DevEco Studio / ArkTS','@ohos.net.http（HTTP 客户端）','Preferences（记住上次绑定的车）','模拟器地址 10.0.2.2:8000'],
+    duties:['选车页：调 GET /devices 展示车列表（名称/在线/电量/冻结），点选绑定','控制页：轮询 GET /status?device_id= 拿位置与状态','命令下发：POST /command 带 device_id + cmd + speed','本地记住上次绑定的车，重启自动恢复（决策 D2）'],
+    files:['D:\\DevEco\\HarmonyOSProjects\\CarCtrlFleet（bundle edu.myb.carctrlfleet）','CloudApi.ets：getDevices / getStatus / sendCommand','Index.ets：单页内选车区 + 控制区'],
+    links:['L1'],
+    notes:'APP 与小车端、网页端、云端之间均无直连，所有控制必经业务后端中转；AK/SK 只在后端，APP 零持有。'
+  },
+  admin: {
+    tag:'端节点 ②', name:'Admin 管理端', sub:'B/S 管理后台 · 浏览器 · 步骤⑤ 已实现',
+    state:'ok', stateText:'已实现：web/admin.html 四视图 + server/admin.py（Blueprint 挂进 :8000），"注册→使用→冻结"闭环已验收',
+    desc:'面向管理员的运维入口，是 v1.2 新增、v1.3 纳入架构图的第六端。纯静态单文件页面，所有能力走 /admin/* 接口，登录后用 X-Admin-Token 鉴权（token 只存后端内存，重启失效）。',
+    stack:['原生 HTML（零依赖，file:// 可打开）','X-Admin-Token 请求头 + 单管理员账号','server/admin.py（Flask Blueprint，非独立服务）','与业务接口共享云客户端 / 缓存 / 注册表单例'],
+    duties:['总览：在线/离线/冻结统计 + 电量排行 + 近 7 天消息量（额度监控）','设备管理：注册新设备（含密钥一次性展示）、冻结/解冻（二次确认）','命令历史：commands.log 结构化展示（下发→回执配对成一条）','实时监控：内嵌 fleet_view.html'],
+    files:['web/admin.html','server/admin.py','server/devices_secret.json（敏感，仅本机）','server/config.json（admin_user/admin_pass，仅本机）'],
+    links:['L6'],
+    notes:'为什么不做独立服务：管理接口与业务接口共享云客户端、缓存、注册表单例，拆进程会导致状态不同步；Blueprint 一行挂载即可复用 CORS 与日志配置。'
+  },
+  backend: {
+    tag:'端节点 ③', name:'业务后端', sub:'Flask :8000 + WebSocket :8889 · 全链路管控中枢',
+    state:'ok', stateText:'已实现步骤②③⑤：6 个业务接口 + 6 个 /admin/* 接口 + 5s 车队缓存 + SQLite 轨迹库 + WS 广播 + 命令审计',
+    desc:'承上启下的核心：对上给 APP / 网页 / 管理端提供极简接口，对下封装华为云 SDK；负责凭证隔离、device_id 路由、命令白名单与冻结拦截、状态汇聚、轨迹落库与 WS 广播。',
+    stack:['Python 3.10 + Flask（REST :8000）','websockets 15.x + asyncio（WS 广播 :8889，独立 daemon 线程）','huaweicloudsdkiotda v5（应用侧 SDK）','registry / fleet_cache / track_store / ws_server / admin'],
+    duties:['凭据隔离：AK/SK 只存本机 config.json，客户端零持有','管控点：命令白名单 + device_id 注册校验 + frozen 拦截 + 审计日志','状态汇聚：5 秒线程轮询全部设备影子，写入内存缓存','轨迹落库：缓存刷新经回调写 SQLite（变化才记）','实时广播：每秒把缓存快照推给所有 WS 客户端'],
+    files:['server/app.py','server/admin.py','server/registry.py','server/fleet_cache.py','server/track_store.py','server/ws_server.py','server/devices.json','server/track.db','server/commands.log'],
+    links:['L1','L2','L4','L6','L7'],
+    notes:'缓存模块是「数据来源可替换」的落点：将来拉模式换 AMQP / 应用侧 MQTT 推送，只换喂缓存的动作，L1/L4/L6 接口与前端零改动（决策 D3、协议第 5/11 节）。'
+  },
+  iotda: {
+    tag:'端节点 ④', name:'IoTDA 云端', sub:'华为云设备接入 · 标准版免费单元 S0 · 已开通',
+    state:'ok', stateText:'已开通：实例专属应用侧端点、car_001/002 已注册，并支持管理端动态注册 / 冻结设备',
+    desc:'设备与业务后端之间的平台层。设备通过 MQTT 上报属性，平台写设备影子；应用侧通过 HTTPS SDK 查影子、查在线、下发命令，v1.2 起还能注册/冻结设备。物模型与 MQTT 协议全程零改动。',
+    stack:['标准版实例 S0（1000 设备 / 每日约 1 万条消息）','应用侧专属端点 https://{实例ID}.st1.iotda-app.cn-north-4.myhuaweicloud.com','V11 衍生签名（with_derived_predicate）','物模型 service_id=car：x/y/heading/speed/battery','设备影子 / 命令主题 / 规则引擎'],
+    duties:['MQTT 接入：设备鉴权、长连接保活、上下行消息转发','设备影子：保存每台车最新上报属性，供应用侧查询','命令下发与回执：同步命令等车执行回执（约 20s 超时）','设备管理：AddDevice / FreezeDevice / UnfreezeDevice（由 L6 触发）'],
+    files:['iot-stage/model/smart-car-model.json（物模型）','server/config.json（应用侧凭证，仅本机）'],
+    links:['L2','L3'],
+    notes:'应用侧三种推送通道：HTTPS 回调 / AMQP 队列 / 应用侧 MQTTS 转发。三者均需先在规则引擎建订阅规则，且与设备侧 MQTTS(8883) 域名不同（iotda-app vs iotda-device），不可混用。'
+  },
+  car: {
+    tag:'端节点 ⑤', name:'模拟小车端', sub:'Python paho-mqtt · 双车定版件 + run_car.py 通用模拟器',
+    state:'ok', stateText:'已实现：car_001/002 双实例在线；管理端注册的新设备用 run_car.py 一键上线；真车已到货，按独立工程 v1-car / v2-car 调试（不回改 V3）',
+    desc:'设备端。两台定版模拟器与真车共用同一套 MQTT 协议；v1.2 起新增参数化的通用模拟器，配合管理端注册可实现"加车不写代码"。',
+    stack:['Python + paho-mqtt（MQTT over TLS 8883）','clientId = {device_id}_0_1_{timestamp}','password = hmacsha256(密钥=UTC时间戳, 内容=secret)','上报节奏：运动 5 秒 / 空闲 60 秒'],
+    duties:['订阅命令主题，执行 FORWARD/BACK/LEFT/RIGHT/STOP','运动学模拟：按朝向更新 x/y/heading/speed/battery','执行后向回执主题应答（同步命令据此判定 executed）','定时上报属性到平台，写入设备影子'],
+    files:['device/car_mqtt_client_001.py','device/car_mqtt_client_002.py','device/run_car.py（新设备通用启动器，--node car_003）','device/start_fleet.py（扫描注册表拉起全部未冻结车）','device/verify_step1.py（云端验收）'],
+    links:['L3'],
+    notes:'警告：V2 与 V3 同名模拟器不要同时运行——同一 device_id 只允许一个 MQTT 连接，会互相踢下线并污染影子数据。上报节奏勿调快（每日消息额度硬约束）。'
+  },
+  web: {
+    tag:'端节点 ⑥', name:'HTML 视图端', sub:'浏览器 · 实时监控 / 轨迹回放 / 接口调试',
+    state:'ok', stateText:'已实现步骤④：fleet_view.html（WS 实时分轨 + 回放 + HTTP 兜底）、test_console.html（测试台）',
+    desc:'观察端。主通道是 WebSocket :8889 每秒收 fleet_state 广播，按 device_id 分轨渲染；WS 连续失败自动降级为 2 秒轮询 /fleet/status；轨迹回放调 /track。',
+    stack:['原生 HTML + Canvas（零依赖、可 file:// 打开）','WebSocket ws://<host>:8889/ws（1 秒一帧）','HTTP 兜底：每 2 秒轮询 /fleet/status','GET /track 轨迹回放（含进度条/倍速）'],
+    duties:['车队总览：多车位置、在线状态、电量卡片','多车分轨渲染（按 devices.json 的 color 区分，车头按 heading 旋转）','轨迹回放：选车 + 时间窗 → 动画重放','断线指数退避重连 + 自动降级/切回'],
+    files:['web/fleet_view.html','web/test_console.html','web/README.md'],
+    links:['L4'],
+    notes:'网页实时性上限 = 设备 5 秒上报节奏（决策 D3）；命令成功后后端主动刷一次该车缓存，实测端到端约 2.0 秒看到位移。后端已放行 CORS 三件套（含 POST 预检 Allow-Headers）。'
+  },
+  ai: {
+    tag:'规划节点 ⑦', name:'AI 模块（规划中）', sub:'开发路线图步骤⑦ · 当前唯一未开发模块',
+    state:'todo', stateText:'未开发：L7 链路与 /ai/* 接口尚未设计，不在接口协议 v1.3 的接口范围内',
+    desc:'规划中的车队大脑。挂在业务后端之后，复用既有 /command、/track、/admin/commands 能力，不改变 L1~L6 任何接口，只新增 /ai/* 命名空间。',
+    stack:['LLM API（可配置 base_url + key，仅存本机配置文件）','自然语言 → 目标点 / 命令序列 → 复用 POST /command','巡检日报：复用 /track + /admin/commands 数据','（可选）多车任务调度：任务点分配给最近的车'],
+    duties:['自然语言控车：一句"去 3 号楼看看"驱动指定车完成一组动作','播报执行结果（逐步反馈）','一键生成当日巡检报告','可选进阶：多车任务分配'],
+    files:['（尚未创建）预计 server/ai.py + web 对话入口'],
+    links:['L7'],
+    notes:'接口形态留到步骤⑦ 开发时另行定义并追加到协议文档；本节点与 L7 用虚线表示"规划中"，不要把规划当成已实现。'
+  }
+};
+
+/* ============ 数据：链路 ============ */
+const LINKS = {
+  L1: {
+    tag:'链路 L1', name:'APP 控制端 ↔ 业务后端', sub:'HTTP 明文 · 端口 8000 · 请求/响应',
+    state:'part', stateText:'后端侧接口全部已实现；APP 侧 CarCtrlFleet 已构建通过，待 DevEco 模拟器实测（步骤⑥）',
+    from:'app', to:'backend',
+    desc:'APP 不直接碰云，全部经业务后端中转。请求方向：APP → 后端（选车、查状态、发命令、探活）；响应方向：后端 → APP。统一响应包络 {"ok":true,...} / {"ok":false,"error":...}。v1.2 起 /devices 增加 frozen 超集字段，冻结设备被 POST /command 拒绝（400）。',
+    apis:[
+      {m:'GET', p:'/devices', d:'车列表：device_id / name / online / battery / frozen', s:'ok'},
+      {m:'GET', p:'/status?device_id=', d:'单车最新状态（实时查影子，控制页轮询）', s:'ok'},
+      {m:'POST', p:'/command', d:'下发命令 {device_id, cmd, speed}，同步等回执', s:'ok'},
+      {m:'GET', p:'/health', d:'探活 + 车队摘要 {total, online}', s:'ok'}
+    ],
+    sample:'POST /command  →  http://10.0.2.2:8000/command\n请求：{"device_id":"6ae..._car_001","cmd":"FORWARD","speed":80}\n响应：{"ok":true,"device_id":"6ae..._car_001","command_id":"...","executed":true,"response_name":"FORWARD"}\n\n冻结设备：400 {"ok":false,"error":"设备已冻结，命令已拒绝"}',
+    flow:['APP 选车页 GET /devices 拿车列表（冻结车置灰拒绑），用户点选绑定','控制页定时 GET /status?device_id= 刷新位置/电量','用户摇杆操作 → POST /command 带 device_id','后端校验注册表 / frozen / 命令白名单 → 走 L2 下发','收到 L2 回执后返回 executed 给 APP'],
+    notes:'错误码：400 参数错误（缺 device_id / 未注册 / 冻结 / 未知 cmd / speed 越界）、502 云 API 失败、504 命令约 20 秒无回执。决策 D4：教学/局域网维持 HTTP 明文。'
+  },
+  L2: {
+    tag:'链路 L2', name:'业务后端 ↔ IoTDA 云端', sub:'HTTPS · 应用侧 SDK（AK/SK 签名）· 当前为拉模式',
+    state:'ok', stateText:'已实现：查影子 / 查在线 / 下发命令；v1.2 起增加管理端触发的注册与冻结类调用',
+    from:'backend', to:'iotda',
+    desc:'业务后端用官方 SDK 调应用侧 API。主流向是「后端主动查」（拉模式）：5 秒缓存线程轮询全部设备影子与在线状态，/status 实时查；下发命令是写操作。v1.2 起 Admin 管理端的设备注册/冻结也经这条链路落到云侧。',
+    apis:[
+      {m:'SDK', p:'ShowDeviceShadow(device_id)', d:'查设备影子：x/y/heading/speed/battery/time', s:'ok'},
+      {m:'SDK', p:'ShowDevice(device_id)', d:'查在线状态：ONLINE / OFFLINE / INACTIVE', s:'ok'},
+      {m:'SDK', p:'CreateCommand(...)', d:'下发同步命令，service_id=car，paras 恒非空', s:'ok'},
+      {m:'SDK', p:'AddDevice(...)', d:'注册设备（L6 触发），平台按 {product_id}_{node_id} 拼 device_id', s:'ok'},
+      {m:'SDK', p:'FreezeDevice / UnfreezeDevice', d:'冻结/解冻（L6 触发），云侧真正禁连 MQTT', s:'ok'}
+    ],
+    sample:'端点：https://{实例ID}.st1.iotda-app.cn-north-4.myhuaweicloud.com\n命令：CreateCommandRequest(\n  device_id="6ae..._car_002",\n  body=DeviceCommandRequest(service_id="car", command_name="LEFT", paras={})\n)\n请求一律不带 instance_id（域名已隐含，带了反而 403）',
+    flow:['缓存线程每 5 秒对每台注册设备调 ShowDevice + ShowDeviceShadow','影子数值可能是 Decimal → 统一转 float 后写缓存','/status 请求到来时实时调 ShowDeviceShadow（不经缓存）','/command 到来时调 CreateCommand，等平台返回车执行回执','管理端注册/冻结时调 AddDevice / FreezeDevice / UnfreezeDevice'],
+    notes:'V2 踩过的坑：①标准版必须用实例专属应用侧端点；②必须 with_derived_predicate；③请求不带 instance_id；④CreateCommand 的 paras 无参也要传 {}；⑤影子数值可能 Decimal。\n将来可换应用侧推送（AMQP / 应用侧 MQTTS / HTTPS 回调），需先在规则引擎建订阅规则，接口零改动（协议第 5、11 节）。'
+  },
+  L3: {
+    tag:'链路 L3', name:'IoTDA 云端 ↔ 模拟小车端', sub:'MQTT over TLS · 8883 · 上下行双向长连接',
+    state:'ok', stateText:'已实现：双车模拟器 + run_car.py 通用模拟器均可上线；属性上报、命令下发、执行回执全链路已验证',
+    from:'iotda', to:'car',
+    desc:'设备侧专用通道。上行：小车定时把属性报给平台，平台写入设备影子；下行：平台把命令推给小车订阅的主题，小车执行后往回执主题应答。主题天然带 device_id，云侧无需任何 V3 改造。',
+    apis:[
+      {m:'↑ 上报', p:'$oc/devices/{id}/sys/properties/report', d:'属性上报：x/y/heading/speed/battery', s:'ok'},
+      {m:'↓ 命令', p:'$oc/devices/{id}/sys/commands/#', d:'订阅命令主题（QoS 1）', s:'ok'},
+      {m:'↑ 回执', p:'$oc/devices/{id}/sys/commands/response/request_id={rid}', d:'执行回执，同步命令据此判定 executed', s:'ok'},
+      {m:'鉴权', p:'clientId / username / password', d:'clientId={id}_0_1_{ts}，password=hmacsha256(密钥=UTC时间戳,内容=secret)', s:'ok'}
+    ],
+    sample:'上报载荷：\n{"services":[{"service_id":"car","properties":{\n  "x":12.5,"y":8.2,"heading":90,"speed":80,"battery":95\n}}]}\n\n节奏：运动 5 秒 / 空闲 60 秒（保护每日约 1 万条消息额度）\n新设备：D:/anaconda3/python.exe run_car.py --node car_003',
+    flow:['每台模拟器用独立 device_id 与密钥建 MQTT 长连接','小车运动学更新后，按节奏 publish 属性到上报主题','平台收到写入该设备的影子（应用侧 L2 才能查到）','APP/管理端发命令 → L2 → 平台 publish 到命令主题','小车执行动作并向 response 主题回执 → 平台把结果返回给 L2 的同步调用'],
+    notes:'同一 device_id 只允许一个 MQTT 连接：V2 与 V3 同名模拟器不可同时跑。新设备密钥由管理端注册时写入 devices_secret.json（仅本机，勿入仓）。真车已到货：按马老师定的口径，以 V2 为基准在独立工程 v1-car / v2-car 调试（必要时退回 V1），不回改 V3 定版；对接成功后仍沿用同一套 MQTT 协议。'
+  },
+  L4: {
+    tag:'链路 L4', name:'HTML 视图端 ↔ 业务后端', sub:'WebSocket ws://<host>:8889/ws（主）+ HTTP :8000 轮询兜底',
+    state:'ok', stateText:'步骤④ 已实现：WS 每秒广播 fleet_state、ping/pong 心跳、HTTP 兜底降级、/track 轨迹回放',
+    from:'web', to:'backend',
+    desc:'观察端的数据通道。WS 广播由独立端口 8889 的 asyncio 服务承担（Flask WSGI 同步模型不支持长连接），数据源是后端车队缓存；HTTP :8000 提供兜底快照与轨迹查询。管理后台的「实时监控」视图内嵌同一页面。',
+    apis:[
+      {m:'WS', p:'ws://<host>:8889/ws', d:'每秒广播 fleet_state 全车队帧（含 color 超集字段）', s:'ok'},
+      {m:'WS', p:'ping → pong', d:'心跳保活；断线指数退避重连，连续失败自动降级轮询', s:'ok'},
+      {m:'GET', p:'/fleet/status', d:'HTTP 兜底：车队状态快照（缓存）', s:'ok'},
+      {m:'GET', p:'/track?device_id=&from=&to=', d:'轨迹点查询（缺省最近 24h，返回 x/y/t/heading/speed）', s:'ok'}
+    ],
+    sample:'fleet_state 帧：\n{"type":"fleet_state","ts":"2026-11-07 20:30:00","cars":[\n  {"device_id":"6ae..._car_001","name":"1号巡检车","color":"#e24b4a",\n   "online":true,"x":12.5,"y":8.2,"heading":90,"speed":80,"battery":95}\n]}\n\n兜底：GET /fleet/status 返回同一 cars 数组',
+    flow:['后端缓存线程刷新 → 状态写入 fleet_cache（并落库 track.db）','ws_server 每秒把缓存快照 + 注册表静态信息组装成一帧广播','网页按 device_id 分轨渲染，按 color 上色、按 heading 摆正车头','WS 连续失败自动降级为 2 秒轮询 /fleet/status，恢复后切回','轨迹回放：选车 + 时间窗 → GET /track → 动画重放'],
+    notes:'一次广播覆盖全部车，请求数不随车数增长。实时性上限由设备 5 秒上报节奏决定；命令成功后后端主动刷一次该车缓存，实测端到端约 2.0 秒。CORS 三件套已放行（含 POST 预检所需 Allow-Headers）。'
+  },
+  L6: {
+    tag:'链路 L6', name:'Admin 管理端 ↔ 业务后端', sub:'HTTP :8000 · /admin/* · X-Admin-Token 鉴权（v1.2 新增、v1.3 纳入架构图）',
+    state:'ok', stateText:'步骤⑤ 已实现：web/admin.html 四视图 + server/admin.py 六接口，"注册→使用→冻结"闭环已验收',
+    from:'admin', to:'backend',
+    desc:'管理端专用链路，与业务接口同进程同端口（Blueprint 挂载，共享云客户端/缓存/注册表单例）。除 login 外所有请求必须带 X-Admin-Token；token 由登录接口签发，只存后端内存，重启全部失效。',
+    apis:[
+      {m:'POST', p:'/admin/login', d:'登录，签发 token（唯一无需鉴权的接口）', s:'ok'},
+      {m:'GET', p:'/admin/devices', d:'设备列表（含 frozen / online / battery）', s:'ok'},
+      {m:'POST', p:'/admin/devices', d:'注册新设备 {node_id, name, color}，密钥只返回一次', s:'ok'},
+      {m:'POST', p:'/admin/devices/{id}/freeze', d:'冻结：云侧禁连 + 本地标记 + 后端拒令', s:'ok'},
+      {m:'POST', p:'/admin/devices/{id}/unfreeze', d:'解冻：恢复云侧连接与命令下发', s:'ok'},
+      {m:'GET', p:'/admin/commands?limit=50', d:'命令历史（commands.log 结构化，最新在前）', s:'ok'},
+      {m:'GET', p:'/admin/overview', d:'总览：在线/离线/冻结 + 电量排行 + 近 7 天消息量', s:'ok'}
+    ],
+    sample:'POST /admin/login  →  {"username":"...","password":"..."}\n        ←  {"ok":true,"token":"3f9a..."}\n\n后续请求头：X-Admin-Token: 3f9a...\n\nPOST /admin/devices  →  {"node_id":"car_003","name":"3号巡检车","color":"#7a4be2"}\n        ←  {"ok":true,"device_id":"6ae..._car_003","secret":"（仅此一次返回）"}',
+    flow:['管理页登录 → 后端校验账号 → 签发内存 token','注册设备：校验 → 生成 16 位密钥 → 云侧 AddDevice → 密钥/注册表落盘','刷新缓存设备清单与 WS 静态映射，新车约 5 秒出现在监控页','命令历史：解析 commands.log，"下发→回执"配对成一条记录','冻结：先云侧 FreezeDevice（真禁连）成功，再写本地 frozen 字段'],
+    notes:'错误码：401 未登录/token 失效、400 参数非法或 device_id 未注册/重复、502 云侧操作失败。顺序纪律：注册时密钥先于注册表落盘（宁可多孤儿密钥，不能丢密钥）；冻结时先云侧后本地（保证 frozen=true 永真）。token 只存内存，重启需重新登录。'
+  },
+  L7: {
+    tag:'链路 L7（规划）', name:'AI 模块 ↔ 业务后端', sub:'规划中 · 步骤⑦ · 接口尚未设计（虚线表示）',
+    state:'todo', stateText:'未开发：当前 V3 唯一未开发模块；/ai/* 接口待步骤⑦ 开发时定义并追加到协议文档',
+    from:'ai', to:'backend',
+    desc:'预留的 AI 能力接入点。设计原则是不改动 L1~L6 任何既有接口，只新增 /ai/* 命名空间，内部复用既有能力：自然语言解析成命令序列后走 /command，报告生成取 /track 与 /admin/commands 数据。',
+    apis:[
+      {m:'POST', p:'/ai/command（待设计）', d:'自然语言 → 目标点/命令序列 → 复用 POST /command 执行', s:'todo'},
+      {m:'GET', p:'/ai/report（待设计）', d:'按车生成巡检日报，数据源 /track + /admin/commands', s:'todo'},
+      {m:'可选', p:'多车任务调度', d:'任务点分配给最近的车', s:'todo'}
+    ],
+    sample:'规划示意（非现行接口）：\nPOST /ai/command  {"text":"去 3 号楼看看","device_id":"6ae..._car_001"}\n  → LLM 解析 → 内部调用若干次 POST /command\n  ← 逐步播报执行结果 + 汇总',
+    flow:['用户/网页输入一句自然语言','后端调 LLM 解析为目标点与动作序列（凭证仅存本机配置）','逐条复用既有 POST /command 下发，不改设备侧协议','汇总轨迹与命令历史，生成巡检日报'],
+    notes:'本链路在接口协议 v1.3 中只"记账"不设计（第 15.3 节）。实现时须新增 /ai/* 章节；LLM key 走可配置 API，不入库不入仓。'
+  }
+};
+
+/* ============ 数据：两个闭环演示 ============ */
+const FLOWS = {
+  data: {label:'数据闭环', steps:[
+    {t:'① APP 发出控制命令', d:'用户在控制页操作摇杆，POST /command 带 device_id + cmd + speed 发往业务后端。', l:['L1'], n:['app','backend']},
+    {t:'② 后端校验与路由', d:'查注册表、frozen 标记、命令白名单、speed 范围；非法直接 400，合法则准备云侧调用并写 commands.log 审计。', l:[], n:['backend']},
+    {t:'③ 后端调云侧下发', d:'CreateCommand(device_id, service_id=car, command_name, paras) 走 HTTPS 应用侧 SDK，同步等待回执。', l:['L2'], n:['backend','iotda']},
+    {t:'④ 云端 MQTT 下发到车', d:'平台把命令 publish 到 $oc/devices/{id}/sys/commands/#，对应那台小车收到。', l:['L3'], n:['iotda','car']},
+    {t:'⑤ 小车执行并回执', d:'小车执行动作并向 response 主题回执；平台据此让 L2 的同步调用返回，APP 拿到 executed:true。', l:['L1','L2','L3'], n:['app','car']},
+    {t:'⑥ 小车定时上报属性', d:'运动状态下每 5 秒上报 x/y/heading/speed/battery，平台写入设备影子。', l:['L3'], n:['car','iotda']},
+    {t:'⑦ 后端拉影子刷缓存', d:'fleet_cache 每 5 秒 ShowDevice + ShowDeviceShadow 更新内存快照；命令成功后额外主动刷一次该车；变化点经回调写入 SQLite。', l:['L2'], n:['backend']},
+    {t:'⑧ WS 广播到网页渲染', d:'ws_server :8889 每秒把缓存快照组装成 fleet_state 广播；网页按 device_id 分轨渲染（实测端到端约 2.0 秒）。', l:['L4'], n:['backend','web']},
+    {t:'⑨ 轨迹可回放', d:'网页选车 + 时间窗调 /track，从 track.db 取历史点做动画回放，闭环完成。', l:['L4'], n:['web']}
+  ]},
+  admin: {label:'管理闭环', steps:[
+    {t:'① 管理员登录', d:'打开 admin.html，POST /admin/login 校验账号，后端签发内存 token（X-Admin-Token）；未登录的其它 /admin/* 请求一律 401。', l:['L6'], n:['admin','backend']},
+    {t:'② 注册新设备', d:'POST /admin/devices 提交 node_id/name/color → 生成 16 位密钥 → 云侧 AddDevice 真注册（L2）。', l:['L6','L2'], n:['admin','backend','iotda']},
+    {t:'③ 密钥与注册表落盘', d:'密钥先写 devices_secret.json（仅本机），再写 devices.json（含 frozen:false）；刷新缓存设备清单与 WS 静态映射。', l:[], n:['backend']},
+    {t:'④ 新车上线', d:'device/run_car.py --node car_003 读密钥连 MQTT，开始 5 秒/60 秒节奏上报属性。', l:['L3'], n:['car','iotda']},
+    {t:'⑤ 监控页出现新车', d:'缓存刷新后 WS 广播带上新车，fleet_view.html 约 5 秒内出现；管理后台总览/命令历史同步可见。', l:['L2','L4'], n:['backend','web','admin']},
+    {t:'⑥ 冻结与拒令', d:'POST /admin/devices/{id}/freeze → 云侧 FreezeDevice 踢下线 → 本地 frozen=true；此后 POST /command 直接 400 并留审计记录。', l:['L6','L2','L1'], n:['admin','backend','app']}
+  ]}
+};
+
+/* ============ 渲染逻辑 ============ */
+const panel = document.getElementById('panel');
+const NODE_OF = {L1:['app','backend'], L2:['backend','iotda'], L3:['iotda','car'],
+                 L4:['web','backend'], L6:['admin','backend'], L7:['ai','backend']};
+let flowTimer = null, flowIdx = 0, flowKey = 'data';
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function chip(s){const m={ok:'已实现',part:'部分',todo:'规划中'};return '<span class="chip '+s+'">'+m[s]+'</span>';}
+function stateLine(state,text){
+  const cls = state==='ok'?'ok':(state==='part'?'':'todo');
+  return '<div class="statusline '+cls+'"><span class="dot '+(state==='ok'?'ok':state==='part'?'part':'todo')+'"></span>'+esc(text)+'</div>';
+}
+function li(arr){return '<ul>'+arr.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>';}
+function apiTable(apis){
+  return '<table><tr><th>方式</th><th>接口 / 主题</th><th>说明</th><th>状态</th></tr>'+
+    apis.map(a=>'<tr><td>'+esc(a.m)+'</td><td><code>'+esc(a.p)+'</code></td><td>'+esc(a.d)+'</td><td>'+chip(a.s)+'</td></tr>').join('')+'</table>';
+}
+
+function setHighlight(activeL, activeN){
+  document.querySelectorAll('.link').forEach(el=>{
+    el.classList.toggle('active', activeL.includes(el.dataset.id));
+    el.classList.toggle('dim', activeL.length>0 && !activeL.includes(el.dataset.id));
+  });
+  document.querySelectorAll('.node').forEach(el=>{
+    el.classList.toggle('active', activeN.includes(el.dataset.id));
+    el.classList.toggle('dim', activeN.length>0 && !activeN.includes(el.dataset.id));
+  });
+}
+
+function selectLink(id){
+  stopFlow();
+  const L = LINKS[id];
+  setHighlight([id], NODE_OF[id]);
+  panel.innerHTML =
+    '<span class="kicker">'+esc(L.tag)+'</span>'+
+    '<h2>'+esc(L.name)+'</h2><p class="lead">'+esc(L.sub)+'</p>'+
+    stateLine(L.state, L.stateText)+
+    '<h3>链路作用</h3><p>'+esc(L.desc)+'</p>'+
+    '<h3>接口 / 主题清单</h3>'+apiTable(L.apis)+
+    '<h3>报文示例</h3><pre>'+esc(L.sample)+'</pre>'+
+    '<h3>数据流转</h3>'+li(L.flow)+
+    '<div class="note"><b>要点与踩坑：</b><br>'+esc(L.notes).replace(/\n/g,'<br>')+'</div>'+
+    '<div class="note">关联端：'+NODE_OF[id].map(k=>esc(NODES[k].name)).join(' ↔ ')+'　（点击节点可看该端详情）</div>';
+}
+
+function selectNode(id){
+  stopFlow();
+  const N = NODES[id];
+  const rel = Object.keys(NODE_OF).filter(k=>NODE_OF[k].includes(id));
+  setHighlight(rel, [id]);
+  panel.innerHTML =
+    '<span class="kicker">'+esc(N.tag)+'</span>'+
+    '<h2>'+esc(N.name)+'</h2><p class="lead">'+esc(N.sub)+'</p>'+
+    stateLine(N.state, N.stateText)+
+    '<h3>角色定位</h3><p>'+esc(N.desc)+'</p>'+
+    '<h3>技术栈 / 依赖</h3>'+li(N.stack)+
+    '<h3>职责清单</h3>'+li(N.duties)+
+    '<h3>关键文件</h3>'+li(N.files)+
+    '<h3>关联的链路</h3><p>'+rel.map(k=>'<span class="chip ok">'+k+'</span>').join(' ')+'　'+rel.map(k=>esc(LINKS[k].name)).join('；')+'</p>'+
+    '<div class="note"><b>备注：</b><br>'+esc(N.notes)+'</div>';
+}
+
+function overview(){
+  setHighlight([],[]);
+  panel.innerHTML =
+    '<span class="kicker">架构总览</span>'+
+    '<h2>六端 · 六链路 · 两条数据流</h2>'+
+    '<p class="lead">V3 巡检车队平台当前实际架构（截至 2026-11-07）</p>'+
+    '<h3>六端分工</h3>'+
+    li(['APP 控制端：选车绑定、查状态、发命令（鸿蒙 CarCtrlFleet）',
+        'Admin 管理端：登录、设备注册/冻结、命令历史、车队总览（B/S 后台）',
+        '业务后端：路由、缓存、审计、轨迹库、WS 广播的中枢（Flask :8000 + :8889）',
+        'IoTDA 云端：MQTT 接入、设备影子、命令中转、设备注册冻结（华为云 S0）',
+        '模拟小车端：属性上报、命令执行、回执应答（Python × 2 + run_car.py）',
+        'HTML 视图端：WS 实时分轨监控、轨迹回放、HTTP 兜底（浏览器）'])+
+    '<h3>链路与协议</h3>'+
+    li(['L1 APP ↔ 后端：HTTP :8000（4 个业务接口）',
+        'L2 后端 ↔ 云端：HTTPS 应用侧 SDK（查影子/命令/注册/冻结），拉模式',
+        'L3 云端 ↔ 小车：MQTT/TLS 8883（属性/命令/回执）',
+        'L4 网页 ↔ 后端：WS :8889 每秒广播 + HTTP 兜底 + /track 回放',
+        'L5 后端内部：注册表/密钥/日志/轨迹库（非外部链路，图里不画连线）',
+        'L6 管理端 ↔ 后端：HTTP :8000 /admin/*（7 个接口，X-Admin-Token）',
+        'L7 AI 模块 ↔ 后端：规划中（虚线），/ai/* 接口待设计'])+
+    '<h3>当前进度</h3>'+
+    li(['步骤①~⑤ 已完成并验收（模拟底座 / 后端多车化 / 轨迹回放 / 网页渲染 / 管理后台）',
+        '步骤⑥ APP 多车关联：开发完成，命令行构建通过，待模拟器实测',
+        '步骤⑦ AI 增强：唯一未开发模块，L7 与 /ai/* 接口尚未设计',
+        '步骤⑧ 真车：已到货，按 v1-car / v2-car 独立工程调试（以 V2 为基准、必要时退回 V1），不回改 V3 定版，不计入 V3 软件剩余项'])+
+    '<h3>两条主数据流</h3>'+
+    li(['控制流（下行）：APP / Admin → 后端 → IoTDA → 小车 → 回执原路返回',
+        '状态流（上行）：小车 → IoTDA 影子(5s) → 后端缓存 → WS:8889 → 网页 / 后台'])+
+    '<div class="note">点击任意<b>连线</b>查看接口清单、报文示例与数据流转；点击任意<b>端节点</b>查看角色、技术栈、职责与关键文件；顶部两个按钮分别播放<b>数据闭环</b>与<b>管理闭环</b>。</div>'+
+    '<div class="note">依据文档：<code>docs/V3-接口协议设计.md</code> <b>v1.3</b>（第 13 节管理接口、第 15 节现状矩阵）、<code>docs/V3-开发路线图.md</code>（进度表）。状态标注按 2026-11-07 实际代码核对，规划项用虚线区分。</div>';
+}
+
+function reset(){ stopFlow(); overview(); }
+
+/* ============ 闭环播放 ============ */
+function renderFlowStep(i){
+  const F = FLOWS[flowKey], s = F.steps[i];
+  setHighlight(s.l, s.n);
+  panel.innerHTML =
+    '<span class="kicker">'+esc(F.label)+'演示 '+(i+1)+' / '+F.steps.length+'</span>'+
+    '<h2>'+esc(s.t)+'</h2><p class="lead">依次高亮本次流转涉及的链路与端节点</p>'+
+    F.steps.map((f,j)=>'<div class="flow-step '+(j<i?'done':'')+'" '+(j===i?'style="border-left-width:5px"':'')+'>'+
+      '<b>'+esc(f.t)+'</b><br>'+esc(f.d)+'</div>').join('')+
+    '<div class="note">演示中…再次点击按钮或点击图中任意元素可停止。</div>';
+}
+function toggleFlow(key){
+  if(flowTimer){ reset(); return; }
+  flowKey = key; flowIdx = 0;
+  document.getElementById('playBtn').textContent='■ 停止演示';
+  document.getElementById('playAdminBtn').textContent='■ 停止演示';
+  renderFlowStep(flowIdx);
+  flowTimer = setInterval(()=>{
+    flowIdx++;
+    if(flowIdx >= FLOWS[flowKey].steps.length){ stopFlow(); return; }
+    renderFlowStep(flowIdx);
+  }, 2200);
+}
+function stopFlow(){
+  if(flowTimer){ clearInterval(flowTimer); flowTimer=null;
+    document.getElementById('playBtn').textContent='▶ 播放数据闭环';
+    document.getElementById('playAdminBtn').textContent='▶ 播放管理闭环'; }
+}
+
+/* ============ 事件 ============ */
+document.getElementById('diagram').addEventListener('click', e=>{
+  if(!e.target.closest('.link') && !e.target.closest('.node')) reset();
+});
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') reset(); });
+
+/* 锚点直达：#L1~#L7 打开链路详情，#app/#admin/... 打开节点详情 */
+function initFromHash(){
+  const h = decodeURIComponent(location.hash.slice(1));
+  if(LINKS[h]) selectLink(h);
+  else if(NODES[h]) selectNode(h);
+  else overview();
+}
+window.addEventListener('hashchange', initFromHash);
+initFromHash();
+</script>
+</body>
+</html>

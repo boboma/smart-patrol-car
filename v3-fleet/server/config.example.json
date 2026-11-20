@@ -1,0 +1,23 @@
+{
+  "_comment": "V3 华为云 IoTDA 应用侧凭证（从 V2 复制，凭证只存这一处本机，勿入仓勿外发）。与 V2 config.json 的差异：已删掉 device_id（V2 写死单台；V3 设备清单以 devices.json 为准）和 instance_id（实例专属端点的域名已隐含实例，请求一律不带）。标准版实例必须用实例专属应用侧端点（iotda-app 域名）。product_id 供管理后台注册新设备拼 device_id（{product_id}_{node_id}）。admin_user/admin_pass 是管理后台登录账号：仅教学环境用、只存本机勿入仓，上线前必须换成强口令。",
+  "ak": "<你的华为云IAM Access Key>",
+  "sk": "<你的华为云IAM Secret Key>",
+  "project_id": "<你的IAM项目ID>",
+  "region": "cn-north-4",
+  "endpoint": "https://71b55ab7e9.st1.iotda-app.cn-north-4.myhuaweicloud.com",
+  "http_port": 8000,
+  "product_id": "6ae440347f2e6c302fa846ee",
+  "admin_user": "admin",
+  "admin_pass": "admin123",
+  "ai": {
+    "_comment": "步骤⑦ AI 增强：asr=语音转文字（qwen 走 OpenAI 兼容协议传音频 base64），llm=文字转控车指令。key 只存本机勿入仓勿外发。",
+    "asr_provider": "qwen",
+    "asr_local_comment": "local=FunASR 本地推理（模型在 D:/model_cache，断网可用）；qwen=云端 asr-flash-message。注意：qwen 走 dashscope SDK 的 WebSocket 协议（base_url 自动转成 wss://.../api-ws/v1/inference），走 OpenAI 兼容 HTTP 传音频会 400 url error。",
+    "asr_base_url": "https://maas.qianwenaiapi.com/compatible-mode/v1",
+    "asr_api_key": "<你的DashScope API Key>",
+    "asr_model": "qwen-audio-3.1-asr-flash-message",
+    "llm_base_url": "https://api.deepseek.com",
+    "llm_api_key": "<你的LLM API Key>",
+    "llm_model": "deepseek-flash"
+  }
+}
