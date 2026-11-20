@@ -1,0 +1,26 @@
+# ===== Python 运行时产物 =====
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# ===== 密钥与凭证（绝不入库）=====
+config.json
+devices_secret.json
+*.secret.json
+*secret*.txt
+.env
+
+# ===== 运行时数据 =====
+*.db
+*.db-shm
+*.db-wal
+*.log
+
+# ===== 临时与系统文件 =====
+Thumbs.db
+Desktop.ini
+.DS_Store
+*token*.txt
+_acc_*
