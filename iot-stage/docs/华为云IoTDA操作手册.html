@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>华为云 IoTDA 操作手册 — 新手版（鸿蒙车机项目）</title>
+<style>
+  :root{
+    --ink:#1f2933; --muted:#5b6b7a; --line:#e4e9ef; --bg:#f7f9fb;
+    --blue:#1554c0; --blue-bg:#eaf1fd; --green:#0e7a4a; --green-bg:#e8f6ef;
+    --red:#b3261e; --red-bg:#fcebea; --amber:#8a5a00; --amber-bg:#fff4dd;
+    --code-bg:#f0f3f7; --card:#ffffff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;color:var(--ink);background:var(--bg);line-height:1.75;font-size:15px}
+  .wrap{max-width:980px;margin:0 auto;padding:32px 24px 80px}
+  header.hero{background:linear-gradient(135deg,#0d3a8c,#1554c0);color:#fff;border-radius:14px;padding:34px 36px;margin-bottom:28px}
+  header.hero h1{margin:0 0 10px;font-size:26px;letter-spacing:.5px}
+  header.hero p{margin:0;opacity:.88;font-size:14px}
+  header.hero .tags{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+  header.hero .tag{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);padding:2px 12px;border-radius:20px;font-size:12.5px}
+  nav.toc{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 26px;margin-bottom:30px}
+  nav.toc b{font-size:14px;color:var(--muted);letter-spacing:2px}
+  nav.toc ol{margin:8px 0 0;padding-left:22px;columns:2;column-gap:40px}
+  nav.toc li{margin:3px 0;font-size:14px}
+  nav.toc a{color:var(--blue);text-decoration:none}
+  nav.toc a:hover{text-decoration:underline}
+  h2{font-size:21px;margin:44px 0 14px;padding:10px 14px;background:var(--blue-bg);border-left:5px solid var(--blue);border-radius:6px}
+  h3{font-size:17px;margin:28px 0 10px;color:#0d3a8c}
+  h4{font-size:15px;margin:20px 0 8px}
+  p{margin:8px 0}
+  table{border-collapse:collapse;width:100%;margin:12px 0;background:var(--card);font-size:13.8px}
+  th,td{border:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top}
+  th{background:#eef2f7;font-weight:600;white-space:nowrap}
+  tr:nth-child(even) td{background:#fbfcfe}
+  code{font-family:Consolas,"Courier New",monospace;background:var(--code-bg);padding:1px 6px;border-radius:4px;font-size:13px;color:#c7254e}
+  pre{background:#101826;color:#dce6f2;padding:16px 18px;border-radius:10px;overflow-x:auto;font-size:13px;line-height:1.65}
+  pre code{background:none;color:inherit;padding:0}
+  pre .cm{color:#7f96ad}
+  .box{border-radius:10px;padding:14px 18px;margin:14px 0;border:1px solid;font-size:14px}
+  .box.tip{background:var(--green-bg);border-color:#bfe5d2}
+  .box.warn{background:var(--amber-bg);border-color:#f0dcae}
+  .box.danger{background:var(--red-bg);border-color:#f2c8c5}
+  .box.info{background:var(--blue-bg);border-color:#c6d9f5}
+  .box b:first-child{display:block;margin-bottom:4px;font-size:13.5px}
+  .box.tip b:first-child{color:var(--green)}
+  .box.warn b:first-child{color:var(--amber)}
+  .box.danger b:first-child{color:var(--red)}
+  .box.info b:first-child{color:var(--blue)}
+  .step{display:flex;gap:14px;margin:18px 0}
+  .step .no{flex:0 0 34px;height:34px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px}
+  .step .body{flex:1;padding-top:3px}
+  .step .body b{display:block;margin-bottom:2px}
+  .kbd{display:inline-block;border:1px solid #c9d3de;border-bottom-width:2px;border-radius:5px;padding:0 7px;background:#fff;font-size:12.5px;font-family:inherit}
+  .path{font-weight:600;color:#0d3a8c}
+  .footer{margin-top:50px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px}
+  @media(max-width:720px){nav.toc ol{columns:1}}
+  @media print{body{background:#fff}h2{break-after:avoid}pre,.box,table{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <h1>华为云 IoTDA 操作手册（新手版）</h1>
+  <p>配套项目：全场景智能寻检车 APP 开发实战 · IoT 阶段（iot-stage）</p>
+  <p>依据 2026-10-30 实际开通与调试全过程整理，含全部踩坑记录</p>
+  <div class="tags">
+    <span class="tag">IoTDA 标准版免费实例</span><span class="tag">产品 + 物模型</span><span class="tag">设备注册</span><span class="tag">IAM 用户与密钥</span><span class="tag">应用侧 API</span>
+  </div>
+</header>
+
+<nav class="toc">
+  <b>目录</b>
+  <ol>
+    <li><a href="#c0">开始前：先搞懂华为云的账号体系</a></li>
+    <li><a href="#c1">基础操作流程：从零到设备上云</a></li>
+    <li><a href="#c2">核心配置管理：产品 / 设备 / 用户 / 密钥</a></li>
+    <li><a href="#c3">数据需求清单：三类脚手架各需要什么</a></li>
+    <li><a href="#c4">验证与排错：每一步怎么确认没做错</a></li>
+    <li><a href="#c5">常见报错速查表</a></li>
+    <li><a href="#c6">安全与收尾管理</a></li>
+  </ol>
+</nav>
+
+<!-- ================================================================ -->
+<h2 id="c0">〇、开始前：先搞懂华为云的账号体系</h2>
+<p>新手最容易懵的不是页面操作，而是"账号、用户、密钥"这几个词。先花三分钟建立概念地图，后面所有操作都会顺理成章。</p>
+
+<h3>0.1 四个关键角色</h3>
+<table>
+  <tr><th>概念</th><th>是什么</th><th>本项目中的例子</th></tr>
+  <tr><td><b>主账号（账号 / domain）</b></td><td>注册华为云时创建的，一个手机号一个主账号，拥有全部权限、全部资源、全部费用。账号名可能是 <code>hid_xxxx</code> 开头（新一代账号体系）。</td><td><code>hid_0d1u65...*</code></td></tr>
+  <tr><td><b>IAM 子用户（用户）</b></td><td>主账号下创建的"员工账号"，避免把主账号密码和密钥交给别人。子用户被加进某个<b>用户组</b>，用户组挂<b>权限策略</b>（如 admin 管理员、只读）。</td><td><code>iot-aa</code>、<code>iotda-teacher</code>、<code>iotda-t2</code></td></tr>
+  <tr><td><b>IoTDA 实例</b></td><td>物联网平台的"一套运行环境"。免费的标准版单元 S0：1000 台设备、每日 1 万条消息。每个实例有<b>专属接入域名</b>（前后两串字符都是实例标识）。</td><td>实例 ID <code>71b55ab7e9</code></td></tr>
+  <tr><td><b>项目（project）</b></td><td>华为云按区域划分的资源容器，北京四区域对应一个 project_id。调 API 时必须带上。</td><td><code>01a18ad51bfd...</code></td></tr>
+</table>
+
+<h3>0.2 密码与密钥的区别（新手必读）</h3>
+<table>
+  <tr><th>凭证</th><th>用途</th><th>谁在用</th><th>本项目需要吗</th></tr>
+  <tr><td><b>登录密码</b></td><td>登录华为云<b>控制台网页</b>用（人用）</td><td>人</td><td>教师登录控制台需要；<b>程序不需要</b></td></tr>
+  <tr><td><b>AK / SK</b><br>（访问密钥 Access Key）</td><td>程序调华为云 <b>API</b> 时的身份凭证（机器用）。AK 是公开ID，SK 是私钥，<b>SK 只在创建时显示一次</b></td><td>业务后端 app.py</td><td><b>必须</b></td></tr>
+  <tr><td><b>设备密钥（secret）</b></td><td>设备（小车）连平台时算 MQTT 签名用，一机一密</td><td>小车端 car_mqtt_client.py</td><td><b>必须</b></td></tr>
+</table>
+<div class="box info"><b>一句话记住</b>密码管"人进网页"，AK/SK 管"程序调 API"，设备密钥管"设备连云"。三者互不通用，丢了都要重新生成。</div>
+
+<h3>0.3 本项目的三层结构与凭证分布</h3>
+<pre><span class="cm">鸿蒙 APP（应用端）      —— 不持有任何华为云凭证，只认业务后端地址</span>
+   │ HTTP
+业务后端 app.py          —— 持有 AK/SK + project_id + 应用侧端点（config.json）
+   │ HTTPS + 签名
+华为云 IoTDA 实例         —— 域名里隐含实例 ID
+   │ MQTT/TLS + 设备密钥签名
+小车端 car_mqtt_client.py —— 持有设备ID + 设备密钥 + 设备侧域名</pre>
+
+<!-- ================================================================ -->
+<h2 id="c1">一、基础操作流程：从零到设备上云</h2>
+<p>完整走一遍约 40 分钟（不含注册实名）。每一步末尾有"✅ 自检"，做了就勾。</p>
+
+<h3>1.1 注册与实名认证</h3>
+<div class="step"><div class="no">1</div><div class="body">
+<b>注册华为云账号</b>
+访问 <code>https://www.huaweicloud.com</code> → 右上角"注册" → 手机号 + 验证码。注册完你就是<b>主账号</b>。
+</div></div>
+<div class="step"><div class="no">2</div><div class="body">
+<b>个人实名认证</b>
+控制台右上角头像 → <span class="path">账号中心 → 实名认证</span> → 选"个人认证"，用银行卡或人脸方式（几分钟生效）。<b>不做实名无法开通 IoTDA 免费实例</b>。
+</div></div>
+<div class="box tip"><b>✅ 自检</b>控制台右上角能正常进入"账号中心"，实名认证状态显示"已认证"。</div>
+
+<h3>1.2 开通 IoTDA 标准版免费实例</h3>
+<div class="step"><div class="no">3</div><div class="body">
+<b>进入 IoTDA 服务</b>
+控制台顶部搜索框输入 <code>IoTDA</code> → 进入"设备接入 IoTDA"控制台。首次进入会引导购买实例。
+</div></div>
+<div class="step"><div class="no">4</div><div class="body">
+<b>购买免费单元</b>
+<span class="path">总览 → 免费体验/购买实例</span>：
+<ul>
+<li>规格：<b>标准版免费单元 S0</b>（注意不是"基础版"！基础版是共享版，已不再推荐）</li>
+<li>区域：<b>华北-北京四（cn-north-4）</b>（本项目选的区域；哪个区域都行，但前后所有配置必须同区域）</li>
+<li>计费：免费（1000 设备 / 日 1 万条消息额度）</li>
+</ul>
+</div></div>
+<div class="step"><div class="no">5</div><div class="body">
+<b>记下实例的接入地址</b>
+开通后进入实例的 <span class="path">总览 → 接入信息</span>，能看到两个域名，<b>都抄下来</b>：
+<table>
+<tr><th>地址类型</th><th>本项目实际值</th><th>给谁用</th></tr>
+<tr><td>设备侧（MQTT）</td><td><code>71b55ab7e9.st1.iotda-device.cn-north-4.myhuaweicloud.com:8883</code></td><td>小车端</td></tr>
+<tr><td>应用侧（HTTPS）</td><td><code>https://71b55ab7e9.st1.iotda-app.cn-north-4.myhuaweicloud.com</code></td><td>业务后端</td></tr>
+</table>
+</div></div>
+<div class="box warn"><b>⚠️ 关键认知（403 事故的根源）</b>应用侧有两个长得像的地址：<b>通用地址</b> <code>iotda.cn-north-4.myhuaweicloud.com</code>（基础版用的）和<b>实例专属地址</b> <code>71b55ab7e9.st1.iotda-app...</code>（标准版实例的）。<b>标准版实例必须用专属地址</b>，用错了怎么调都是 403。专属地址开头的数字串就是实例 ID，已在域名里，后面调 API 时<b>不需要</b>再传 instance_id 参数。</div>
+<div class="box tip"><b>✅ 自检</b>控制台"总览"能看到实例运行中，接入信息里能查到设备侧和应用侧两个地址。</div>
+
+<h3>1.3 创建产品 + 定义物模型</h3>
+<div class="step"><div class="no">6</div><div class="body">
+<b>新建产品</b>
+实例内 <span class="path">产品 → 创建产品</span>：
+<ul>
+<li>产品名称：<code>smart-car</code>；协议：MQTT；数据格式：JSON</li>
+<li>设备类型：自定义（或从模板选）</li>
+<li>创建后系统分配<b>产品ID</b>（一串十六进制，本项目为 <code>6ae440347f2e6c302fa846ee</code>）</li>
+</ul>
+</div></div>
+<div class="step"><div class="no">7</div><div class="body">
+<b>上传物模型</b>
+产品详情 → <span class="path">功能定义 → 上传模型文件</span>。IoTDA 只接受 <b>zip 包</b>，目录结构必须是：
+<pre>smart-car-model.zip
+├── profile/devicetype-capability.json          <span class="cm">← 产品能力描述</span>
+└── service/service1/profile/servicetype-capability.json  <span class="cm">← 服务定义（属性/命令）</span></pre>
+本项目物模型：服务 <code>car</code>，5 属性（x / y / heading / speed / battery）+ 5 命令（FORWARD / BACK / LEFT / RIGHT / STOP）。成品在 <code>iot-stage/model/smart-car-model.zip</code>。
+<div class="box danger"><b>⚠️ 坑：description 字符白名单</b>模型文件里所有 description 字段有字符白名单校验：<code>°</code>（度符号）、全角冒号<code>：</code>等都会被拒（报 IOTDA.000006）。描述里只用中文、英文字母、数字和空格最稳。</div>
+</div></div>
+<div class="box tip"><b>✅ 自检</b>产品详情"功能定义"里能看到 5 个属性和 5 个命令，没有红色报错。</div>
+
+<h3>1.4 注册设备（这台"小车"的出生证）</h3>
+<div class="step"><div class="no">8</div><div class="body">
+<b>单个添加设备</b>
+<span class="path">设备 → 所有设备 → 注册设备</span>：
+<ul>
+<li>所属产品：smart-car</li>
+<li>设备标识码：<code>car-001</code></li>
+<li>密钥方式：<b>不填</b>（让平台自动生成，即"一机一密"）</li>
+</ul>
+</div></div>
+<div class="step"><div class="no">9</div><div class="body">
+<b>保存设备凭证（只显示这一次！）</b>
+注册成功弹窗会显示 <b>设备ID</b> 和 <b>设备密钥（secret）</b>：
+<ul>
+<li>设备ID = <b>产品ID</b>_设备标识码，如 <code>6ae440347f2e6c302fa846ee_car_001</code></li>
+<li>secret 是一串 32 位十六进制</li>
+</ul>
+关掉弹窗后 secret 不再完整显示。<b>立刻抄下来</b>（丢了只能重置密钥）。
+</div></div>
+<div class="box tip"><b>✅ 自检</b>设备列表出现 car-001，状态为 <b>未激活（INACTIVE）</b>——这是正常的，等小车端第一次连上云会自动变成"在线"。</div>
+
+<h3>1.5 创建 IAM 子用户并授权（给程序发"工牌"）</h3>
+<div class="step"><div class="no">10</div><div class="body">
+<b>进入统一身份认证 IAM</b>
+控制台搜索 <code>IAM</code> → 进入"统一身份认证服务"。
+</div></div>
+<div class="step"><div class="no">11</div><div class="body">
+<b>创建用户</b>
+<span class="path">用户 → 创建用户</span>：
+<ul>
+<li>用户名：如 <code>iot-aa</code></li>
+<li>凭证类型：<b>勾选"访问密钥"（编程访问，给程序用）</b>；需要登录控制台就同时勾"密码"</li>
+</ul>
+<div class="box warn"><b>⚠️ 坑：凭证类型勾选</b>创建时如果没勾"访问密钥"，用户创建出来就没有 AK/SK，得事后在"安全设置 → 访问密钥"里单独创建（也行，但新手容易找不到入口）。</div>
+</div></div>
+<div class="step"><div class="no">12</div><div class="body">
+<b>加入用户组（授权）</b>
+创建流程下一步（或事后点"授权"）把用户加入用户组：
+<ul>
+<li>图省事：<code>admin</code> 组（华为云管理员，全权限）——本项目 iot-aa 就是这样</li>
+<li>更规范：只建一个挂 <code>IoTDA FullAccess</code> 策略的组，把 IoT 用户放进去（最小权限原则）</li>
+</ul>
+</div></div>
+<div class="step"><div class="no">13</div><div class="body">
+<b>下载 AK/SK 凭证文件（只显示这一次！）</b>
+用户创建成功会弹出 credentials.csv <b>下载</b>按钮，内容形如：
+<pre>User Name,Access Key Id,Secret Access Key
+iot-aa,HPUA****...,****mUMx...</pre>
+<b>SK 同样只显示这一次</b>，CSV 丢了就得作废重建。也可以事后在 <span class="path">我的凭证 → 访问密钥</span> 里为用户创建新密钥。
+</div></div>
+<div class="box tip"><b>✅ 自检</b>打开 <code>我的凭证</code> 页面（右上角头像菜单）：能看到"账号ID""IAM用户ID"；"项目列表"里能找到 cn-north-4 对应的<b>项目ID</b>——这就是后端要的 project_id。</div>
+
+<div class="box info"><b>🔎 记录页面一览</b><b>我的凭证</b>（右上角头像 → 我的凭证）是新手最重要的页面：账号ID、IAM用户ID、项目ID、访问密钥（AK/SK）全在这里。调 API 需要的三个 ID 类数据（账号ID / 用户ID / 项目ID）都能从此页复制。</div>
+
+<!-- ================================================================ -->
+<h2 id="c2">二、核心配置管理</h2>
+
+<h3>2.1 产品管理</h3>
+<table>
+  <tr><th>操作</th><th>入口</th><th>要点</th></tr>
+  <tr><td>查看/修改物模型</td><td>产品 → 功能定义 → 自定义功能</td><td>页面可视化增删属性/命令，也可重新上传模型 zip 覆盖</td></tr>
+  <tr><td>查询产品ID</td><td>设备 → 产品过滤；或产品详情</td><td>产品ID 是设备ID 的前缀</td></tr>
+  <tr><td>在线调试</td><td>设备详情 → 命令下发</td><td>控制台可手动给设备发命令，验证物模型（注意：手动调试和脚本同时在线会互踢）</td></tr>
+</table>
+
+<h3>2.2 设备管理</h3>
+<table>
+  <tr><th>操作</th><th>入口</th><th>要点</th></tr>
+  <tr><td>看设备在线状态</td><td>设备 → 所有设备</td><td>未激活（从未连过）/ 在线 / 离线。判定依据是 MQTT 长连接是否存活</td></tr>
+  <tr><td>重置设备密钥</td><td>设备详情 → 安全 → 重置密钥</td><td>secret 丢了用它；重置后旧密钥立刻失效</td></tr>
+  <tr><td>看设备影子</td><td>设备详情 → 设备影子</td><td>云端缓存的最后一次属性上报，设备离线也能查</td></tr>
+  <tr><td>删除设备</td><td>设备列表 → 删除</td><td>删除后设备ID 可重新注册；影子数据一起清空</td></tr>
+</table>
+<div class="box warn"><b>⚠️ 互踢规则</b>同一设备ID 只允许<b>一条</b> MQTT 长连接。第二个实例（或控制台的"设备模拟器"、或另一台电脑跑同一脚本）连上去，旧连接会被踢下线。演示时确认只跑一份 car_mqtt_client.py。</div>
+
+<h3>2.3 IAM 用户与权限管理</h3>
+<table>
+  <tr><th>操作</th><th>入口</th><th>要点</th></tr>
+  <tr><td>创建/停用/删除用户</td><td>IAM → 用户</td><td>停用后该用户的 AK/SK 和登录立即失效</td></tr>
+  <tr><td>调整权限</td><td>用户 → 授权 / 用户组管理</td><td>权限挂在<b>用户组</b>上，用户通过加入组获得权限</td></tr>
+  <tr><td>创建 AK/SK</td><td>我的凭证 → 访问密钥<br>（或 IAM → 用户 → 安全设置）</td><td>每个用户最多 2 个有效 AK；删除即失效</td></tr>
+  <tr><td>改登录密码</td><td>IAM → 用户 → 安全设置 → 修改密码</td><td>子用户首次登录控制台会强制改密码</td></tr>
+</table>
+<div class="box info"><b>🔎 实测结论（本项目 4 账号对比）</b>主账号、admin 子用户、普通 IoT 子用户，只要权限覆盖 IoTDA，调应用侧 API <b>都能通</b>。教学环境用哪个都行；但 AK/SK 该用谁的是<b>管理问题</b>：建议日常用普通子用户的密钥，admin 密钥只在管理操作时用，主账号 AK/SK 尽量不落盘。</div>
+
+<h3>2.4 额度管理（免费实例的生命线）</h3>
+<table>
+<tr><th>资源</th><th>免费额度</th><th>超了会怎样</th><th>本项目对策</th></tr>
+<tr><td>设备数</td><td>1000 台</td><td>无法注册新设备</td><td>一个班几十台绰绰有余</td></tr>
+<tr><td>消息数</td><td><b>每日 1 万条</b></td><td>当日新消息被拒，次日恢复</td><td>属性上报节奏降频：运动 5s/条、静止 60s/条（已写入 car_mqtt_client.py）。<b>千万别按 TCP 阶段 100ms 一条的习惯来</b>，那速率 1 台车几分钟烧完全天额度</td></tr>
+</table>
+<div class="box tip"><b>查看用量</b>IoTDA 控制台 → 总览 / 实例详情里有消息统计图表。课堂演示当天开课前先看一眼剩余额度。</div>
+
+<!-- ================================================================ -->
+<h2 id="c3">三、数据需求清单（照抄配置用）</h2>
+<p>搭起整套系统需要从华为云抄出的所有数据，按"谁在用"分组。<b>带 🔑 的为敏感凭证。</b></p>
+
+<h3>3.1 小车端需要的数据（car_mqtt_client.py）</h3>
+<table>
+<tr><th>数据</th><th>本项目实际值</th><th>从哪拿</th></tr>
+<tr><td>设备侧 MQTT 域名</td><td><code>71b55ab7e9.st1.iotda-device.cn-north-4.myhuaweicloud.com</code></td><td>实例总览 → 接入信息 → 设备侧</td></tr>
+<tr><td>MQTT 端口</td><td><code>8883</code>（MQTTS/TLS 加密）</td><td>同上</td></tr>
+<tr><td>设备ID</td><td><code>6ae440347f2e6c302fa846ee_car_001</code></td><td>注册设备成功弹窗 / 设备列表</td></tr>
+<tr><td>🔑 设备密钥 secret</td><td><code>****（已脱敏）...（32位）</code></td><td>注册设备成功弹窗（只显示一次，可重置）</td></tr>
+</table>
+<p>小车端凭以上 4 项即可连云，<b>不需要 AK/SK、不需要任何账号密码</b>。MQTT 密码是每次连接时用 secret 现算的 HMAC-SHA256 签名。</p>
+
+<h3>3.2 业务后端需要的数据（app.py → config.json）</h3>
+<table>
+<tr><th>数据</th><th>本项目实际值</th><th>从哪拿</th></tr>
+<tr><td>🔑 AK</td><td><code>HPUA****...（20位）</code></td><td>我的凭证 → 访问密钥（或用户创建时的 credentials.csv）</td></tr>
+<tr><td>🔑 SK</td><td><code>****...（40位）</code></td><td>同上，只显示一次</td></tr>
+<tr><td>project_id</td><td><code>01a18ad51bfd7b3696ca4c0c1a3c298d</code></td><td>我的凭证 → 项目列表 → cn-north-4 行</td></tr>
+<tr><td>region</td><td><code>cn-north-4</code></td><td>开通实例时选的区域</td></tr>
+<tr><td>应用侧专属端点</td><td><code>https://71b55ab7e9.st1.iotda-app.cn-north-4.myhuaweicloud.com</code></td><td>实例总览 → 接入信息 → <b>应用侧</b>（认准带实例ID的，别用通用的）</td></tr>
+<tr><td>device_id</td><td><code>6ae440347f2e6c302fa846ee_car_001</code></td><td>设备列表</td></tr>
+</table>
+<p><b>后端不需要</b>：登录密码、设备密钥、instance_id（已隐含在端点域名里，代码里不再传）。</p>
+
+<h3>3.3 APP 端需要的数据（唯一）</h3>
+<table>
+<tr><th>数据</th><th>值</th><th>说明</th></tr>
+<tr><td>业务后端地址</td><td><code>http://10.0.2.2:8000</code></td><td>模拟器内访问宿主机用 10.0.2.2；真机连同一局域网时改为教师机的局域网 IP</td></tr>
+</table>
+<p>这就是"业务后端中转"架构的最大价值：<b>APP 端零华为云凭证</b>，学生拿到的只是两个 HTTP 接口地址。凭证泄露、超额调用、越权命令的风险全部被后端挡住。</p>
+
+<h3>3.4 数据流向总图</h3>
+<pre><span class="cm">华为云控制台抄录 →</span>
+  ├─ 设备侧域名+端口、设备ID、🔑secret ──→ car_mqtt_client.py（内置常量）
+  └─ 🔑AK、🔑SK、project_id、应用侧端点 ──→ config.json（app.py 读取）
+                                            ↓
+                                APP 只需要 http://10.0.2.2:8000</pre>
+
+<!-- ================================================================ -->
+<h2 id="c4">四、验证与排错：每一步怎么确认没做错</h2>
+
+<h3>4.1 设备侧验证（先小车，后后端）</h3>
+<pre>cd iot-stage/server
+D:\anaconda3\python.exe car_mqtt_client.py</pre>
+<ul>
+<li>看到 <code>[连接] 已连上华为云 IoTDA</code> → MQTT 鉴权通过（域名/设备ID/secret/UTC时间戳全对）</li>
+<li>控制台设备列表状态变<b>在线</b> → 链路通</li>
+<li>设备详情"最新上报"能看到 x/y/heading 等属性值 → 属性上报正常</li>
+</ul>
+
+<h3>4.2 应用侧验证（后端）</h3>
+<pre>cd iot-stage/server
+D:\anaconda3\python.exe app.py     <span class="cm"># 另一个终端</span>
+curl http://127.0.0.1:8000/health  <span class="cm"># → {"ok":true,"device_online":true}</span></pre>
+<ul>
+<li><code>device_online:true</code> → AK/SK 签名、端点、project_id 全对（否则 403/401）</li>
+<li><code>curl -X POST .../command -d "{\"cmd\":\"FORWARD\",\"speed\":60}"</code> 返回 <code>executed:true</code> → 命令下发全链路通</li>
+</ul>
+
+<h3>4.3 完整验收序列（curl 即可，不需要 APP）</h3>
+<pre>curl http://127.0.0.1:8000/status                          <span class="cm"># 记下当前 y 值</span>
+curl -X POST http://127.0.0.1:8000/command \
+     -H "Content-Type: application/json" \
+     -d "{\"cmd\":\"FORWARD\",\"speed\":60}"               <span class="cm"># executed:true</span>
+sleep 6
+curl http://127.0.0.1:8000/status                          <span class="cm"># y 变了 → 闭环成功</span>
+curl -X POST http://127.0.0.1:8000/command \
+     -H "Content-Type: application/json" -d "{\"cmd\":\"STOP\"}"</pre>
+
+<!-- ================================================================ -->
+<h2 id="c5">五、常见报错速查表</h2>
+<table>
+<tr><th>报错</th><th>场景</th><th>含义与解法</th></tr>
+<tr><td><code>rc=4</code>（MQTT）</td><td>小车连云</td><td>鉴权失败。按顺序查：①设备ID/secret 抄错没 ②HMAC 算法的密钥和内容顺序（密钥=时间戳，内容=secret）③时间戳必须是 <b>UTC</b> 且格式 YYYYMMDDHH</td></tr>
+<tr><td><code>rc=5</code>（MQTT）</td><td>小车连云</td><td>未授权。设备未在该实例注册，或产品归属错了</td></tr>
+<tr><td><code>403 IOTDA.000021</code></td><td>调应用侧 API</td><td>"用户不存在或未订阅"——<b>错误信息有误导性</b>。实测三大真凶：①端点用了通用地址而非实例专属地址 ②SDK 没配衍生签名（with_derived_predicate）③请求带了多余的 instance_id。与账号权限基本无关（4 个账号实测都能通）</td></tr>
+<tr><td><code>IOTDA.000006</code> 上传模型失败</td><td>物模型上传</td><td>description 含白名单外字符（°、全角冒号等），或 zip 目录结构不对</td></tr>
+<tr><td><code>IOTDA.000006 paras must not be null</code></td><td>下发无参命令</td><td>命令的 paras 必须传 <code>{}</code>，不能是 null</td></tr>
+<tr><td>设备突然离线</td><td>演示中途</td><td>同设备ID 被另一处连接（控制台调试器/另一份脚本）踢下线，或当日消息额度耗尽</td></tr>
+<tr><td>STOP 后 /status 的 speed 仍是旧值</td><td>轮询状态</td><td>设备影子按上报节奏刷新（静止 60s/条），不是 bug；等一个上报周期或看 commands.log 确认命令已执行</td></tr>
+<tr><td>ImportError: huaweicloudsdk...</td><td>跑 app.py</td><td>用错了解释器。必须 <code>D:\anaconda3\python.exe</code>（3.10，SDK 装在它的用户目录），裸 python 是 3.13 没有这些包</td></tr>
+</table>
+
+<!-- ================================================================ -->
+<h2 id="c6">六、安全与收尾管理</h2>
+<h3>6.1 凭证管理纪律</h3>
+<ul>
+<li>🔑 AK/SK、设备 secret <b>只存本机 config.json / 脚本常量</b>，不进 Git 仓库、不发群、不进课件</li>
+<li>SK 和 secret <b>只在创建时显示一次</b>——养成"弹窗即抄录归档"的习惯</li>
+<li>课件/文档里截图注意打码（本手册所有密钥示例均为截断展示）</li>
+</ul>
+<h3>6.2 结课收尾清单</h3>
+<ul>
+<li>设备：批量删除或停用（防学生课后再连）</li>
+<li>IAM 子用户：停用（比删除温和，可恢复）</li>
+<li>AK/SK：删除不再使用的密钥</li>
+<li>实例：免费单元不扣费，可保留供下学期复用；确认消息额度监控无人为异常</li>
+</ul>
+
+<div class="footer">
+  <p>华为云 IoTDA 操作手册（新手版）· 配套 iot-stage 项目 · 依据 2026-10-30 实际开通调试过程整理 · 敏感凭证已截断，完整值见本机 iot-stage/server/config.json</p>
+  <p>控制台界面可能随华为云版本更新有细微差异，以实际页面为准；排错结论以 test_api_auth.py / test_accounts.py 实测为准。</p>
+</div>
+
+</div>
+</body>
+</html>

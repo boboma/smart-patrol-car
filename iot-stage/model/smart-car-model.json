@@ -1,0 +1,118 @@
+{
+  "services": [
+    {
+      "service_id": "car",
+      "service_type": "car",
+      "description": "智能寻检车服务：属性对应 STATE 帧，命令对应 CMD 帧",
+      "properties": [
+        {
+          "property_name": "x",
+          "data_type": "int",
+          "required": true,
+          "method": "R",
+          "max": "800",
+          "min": "0",
+          "step": "1",
+          "unit": "",
+          "enum_list": null,
+          "description": "横坐标（场地 0~800）"
+        },
+        {
+          "property_name": "y",
+          "data_type": "int",
+          "required": true,
+          "method": "R",
+          "max": "600",
+          "min": "0",
+          "step": "1",
+          "unit": "",
+          "enum_list": null,
+          "description": "纵坐标（场地 0~600）"
+        },
+        {
+          "property_name": "heading",
+          "data_type": "int",
+          "required": true,
+          "method": "R",
+          "max": "359",
+          "min": "0",
+          "step": "1",
+          "unit": "°",
+          "enum_list": null,
+          "description": "朝向角（0°=朝上，顺时针）"
+        },
+        {
+          "property_name": "speed",
+          "data_type": "int",
+          "required": true,
+          "method": "R",
+          "max": "100",
+          "min": "-100",
+          "step": "1",
+          "unit": "",
+          "enum_list": null,
+          "description": "带符号速度（正前进/负后退）"
+        },
+        {
+          "property_name": "battery",
+          "data_type": "decimal",
+          "required": true,
+          "method": "R",
+          "max": "100",
+          "min": "0",
+          "step": "0.1",
+          "unit": "%",
+          "enum_list": null,
+          "description": "电量百分比"
+        }
+      ],
+      "commands": [
+        {
+          "command_name": "FORWARD",
+          "paras": [
+            {
+              "para_name": "speed",
+              "data_type": "int",
+              "required": true,
+              "max": "100",
+              "min": "0",
+              "step": "1",
+              "unit": "",
+              "enum_list": null,
+              "description": "前进速度"
+            }
+          ]
+        },
+        {
+          "command_name": "BACK",
+          "paras": [
+            {
+              "para_name": "speed",
+              "data_type": "int",
+              "required": true,
+              "max": "100",
+              "min": "0",
+              "step": "1",
+              "unit": "",
+              "enum_list": null,
+              "description": "后退速度"
+            }
+          ]
+        },
+        {
+          "command_name": "LEFT",
+          "paras": []
+        },
+        {
+          "command_name": "RIGHT",
+          "paras": []
+        },
+        {
+          "command_name": "STOP",
+          "paras": []
+        }
+      ],
+      "events": []
+    }
+  ]
+}

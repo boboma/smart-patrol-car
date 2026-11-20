@@ -1,0 +1,11 @@
+{
+  "_comment": "华为云 IoTDA 应用侧凭证。仅存本机，勿提交仓库、勿发学生。注意：标准版实例必须用实例专属应用侧端点（iotda-app 域名），且请求不带 instance_id（域名已隐含）。",
+  "ak": "<你的华为云IAM Access Key>",
+  "sk": "<你的华为云IAM Secret Key>",
+  "project_id": "<你的IAM项目ID>",
+  "region": "cn-north-4",
+  "endpoint": "https://71b55ab7e9.st1.iotda-app.cn-north-4.myhuaweicloud.com",
+  "instance_id": "71b55ab7e9",
+  "device_id": "6ae440347f2e6c302fa846ee_car_001",
+  "http_port": 8000
+}
